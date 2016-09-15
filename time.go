@@ -12,8 +12,8 @@ func Seconds(d time.Duration) float64 {
 	return float64(d) / float64(time.Second)
 }
 
-// Millis returns a duration as milliseconds.
-func Millis(d time.Duration) float64 {
+// Milliseconds returns a duration as milliseconds.
+func Milliseconds(d time.Duration) float64 {
 	return float64(d) / float64(time.Millisecond)
 }
 

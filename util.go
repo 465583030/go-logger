@@ -1,10 +1,12 @@
 package logger
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // FormatFileSize returns a string representation of a file size in bytes.
@@ -43,4 +45,41 @@ func GetIP(r *http.Request) string {
 
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 	return ip
+}
+
+var errTypeConversion = errors.New("Invalid event state type conversion")
+
+func stateAsRequest(state interface{}) (*http.Request, error) {
+	if typed, isTyped := state.(*http.Request); isTyped {
+		return typed, nil
+	}
+	return nil, errTypeConversion
+}
+
+func stateAsInteger(state interface{}) (int, error) {
+	if typed, isTyped := state.(int); isTyped {
+		return typed, nil
+	}
+	return 0, errTypeConversion
+}
+
+func stateAsEventFlag(state interface{}) (uint64, error) {
+	if typed, isTyped := state.(uint64); isTyped {
+		return typed, nil
+	}
+	return 0, errTypeConversion
+}
+
+func stateAsDuration(state interface{}) (time.Duration, error) {
+	if typed, isTyped := state.(time.Duration); isTyped {
+		return typed, nil
+	}
+	return 0, errTypeConversion
+}
+
+func stateAsBytes(state interface{}) ([]byte, error) {
+	if typed, isTyped := state.([]byte); isTyped {
+		return typed, nil
+	}
+	return nil, errTypeConversion
 }

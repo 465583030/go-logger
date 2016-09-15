@@ -1,13 +1,20 @@
 package logger
 
-import "io"
+import (
+	"bytes"
+	"io"
+)
 
 // Logger is the basic interface to a logger implementation.
 type Logger interface {
-	Verbosity() int64
-	SetVerbosity(verbosity int64)
 	Printf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
 	Fprintf(w io.Writer, format string, args ...interface{})
-	Colorize(value string, color AnsiColorCode)
+	Write(data []byte) (int64, error)
+
+	Colorize(value string, color AnsiColorCode) string
+	ColorizeByStatusCode(statusCode int, value string) string
+
+	GetBuffer() *bytes.Buffer
+	PutBuffer(*bytes.Buffer)
 }
