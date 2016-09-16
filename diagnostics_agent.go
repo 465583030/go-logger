@@ -3,12 +3,15 @@ package logger
 import (
 	"fmt"
 	"os"
-	"runtime"
-	"strings"
 	"sync"
 
-	exception "github.com/blendlabs/go-exception"
 	workQueue "github.com/blendlabs/go-workqueue"
+)
+
+var (
+	// DefaultDiagnosticsAgentQueueWorkers is the number of consumers
+	// for the diagnostics agent work queue.
+	DefaultDiagnosticsAgentQueueWorkers = 1 //runtime.NumCPU()
 )
 
 var (
@@ -23,6 +26,20 @@ func InitializeDiagnostics(verbosity uint64, writers ...Logger) {
 	defer _diagnosticsAgentLock.Unlock()
 
 	_diagnosticsAgent = NewDiagnosticsAgent(verbosity, writers...)
+}
+
+// InitializeDiagnosticsFromEnvironment initializes the Diagnostics() agent with a given verbosity
+// and optionally a targeted writer (only the first variadic writer will be used).
+func InitializeDiagnosticsFromEnvironment() error {
+	_diagnosticsAgentLock.Lock()
+	defer _diagnosticsAgentLock.Unlock()
+
+	eventFlag, err := ParseEventFlagNameSet(os.Getenv("LOG_VERBOSITY"))
+	if err != nil {
+		return err
+	}
+	_diagnosticsAgent = NewDiagnosticsAgent(eventFlag, NewLogWriterFromEnvironment())
+	return nil
 }
 
 // Diagnostics returnes a default DiagnosticsAgent singleton.
@@ -41,9 +58,9 @@ func Diagnostics() *DiagnosticsAgent {
 func NewDiagnosticsAgent(verbosity uint64, writers ...Logger) *DiagnosticsAgent {
 	diag := &DiagnosticsAgent{
 		verbosity:  verbosity,
-		eventQueue: workQueue.NewQueue(),
+		eventQueue: workQueue.NewQueueWithBufferSize(4096),
 	}
-	diag.eventQueue.Start(runtime.NumCPU())
+	diag.eventQueue.Start(DefaultDiagnosticsAgentQueueWorkers)
 	if len(writers) > 0 {
 		diag.writer = writers[0]
 	} else {
@@ -107,8 +124,28 @@ func (da *DiagnosticsAgent) CheckVerbosity(flagValue uint64) bool {
 func (da *DiagnosticsAgent) Eventf(eventFlag uint64, label string, labelColor AnsiColorCode, format string, args ...interface{}) {
 	if da.CheckVerbosity(eventFlag) && len(format) > 0 {
 		defer da.OnEvent(eventFlag)
-		da.writer.Printf("%s %s", da.writer.Colorize(label, labelColor), fmt.Sprintf(format, args...))
+		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{label, labelColor, format}, args...)...)
 	}
+}
+
+func (da *DiagnosticsAgent) writeEventMessage(actionState ...interface{}) error {
+	if len(actionState) < 3 {
+		return nil
+	}
+	label, err := stateAsString(actionState[0])
+	if err != nil {
+		return err
+	}
+	labelColor, err := stateAsAnsiColorCode(actionState[1])
+	if err != nil {
+		return err
+	}
+	format, err := stateAsString(actionState[2])
+	if err != nil {
+		return err
+	}
+	da.writer.Printf("%s %s", da.writer.Colorize(label, labelColor), fmt.Sprintf(format, actionState[3:]...))
+	return nil
 }
 
 // Infof logs an informational message to the output stream.
@@ -128,19 +165,13 @@ func (da *DiagnosticsAgent) DebugDump(object interface{}) {
 
 // Warningf logs a debug message to the output stream.
 func (da *DiagnosticsAgent) Warningf(format string, args ...interface{}) {
-	da.Eventf(EventDebug, "Warning", ColorYellow, format, args...)
+	da.Eventf(EventWarning, "Warning", ColorYellow, format, args...)
 }
 
 // Warning logs a warning error to std out.
 func (da *DiagnosticsAgent) Warning(err error) error {
 	if err != nil {
 		if da.CheckVerbosity(EventWarning) {
-			defer da.OnEvent(EventWarning, err)
-			if ex, isException := err.(*exception.Exception); isException {
-				da.writer.Errorf("%s %s", da.writer.Colorize("Warning Exception", ColorYellow), ex.Message())
-				da.writer.Errorf("%s %s", da.writer.Colorize("Stack Trace", ColorYellow), strings.Join(ex.StackTrace(), "\n\t\t"))
-				return err
-			}
 			da.Warningf(err.Error())
 		}
 	}
@@ -156,12 +187,6 @@ func (da *DiagnosticsAgent) Errorf(format string, args ...interface{}) {
 func (da *DiagnosticsAgent) Error(err error) error {
 	if err != nil {
 		if da.CheckVerbosity(EventError) {
-			defer da.OnEvent(EventError, err)
-			if ex, isException := err.(*exception.Exception); isException {
-				da.writer.Errorf("%s %s", da.writer.Colorize("Exception", ColorRed), ex.Message())
-				da.writer.Errorf("%s %s", da.writer.Colorize("Stack Trace", ColorRed), strings.Join(ex.StackTrace(), "\n\t\t"))
-				return err
-			}
 			da.Errorf(err.Error())
 		}
 	}
@@ -177,12 +202,6 @@ func (da *DiagnosticsAgent) Fatalf(format string, args ...interface{}) {
 func (da *DiagnosticsAgent) Fatal(err error) error {
 	if err != nil {
 		if da.CheckVerbosity(EventError) {
-			defer da.OnEvent(EventFatalError, err)
-			if ex, isException := err.(*exception.Exception); isException {
-				da.writer.Errorf("%s %s", da.writer.Colorize("Fatal Exception", ColorRed), ex.Message())
-				da.writer.Errorf("%s\n%s", da.writer.Colorize("Stack Trace", ColorRed), strings.Join(ex.StackTrace(), "\n\t\t"))
-				return err
-			}
 			da.Fatalf(err.Error())
 		}
 	}

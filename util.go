@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -63,6 +64,13 @@ func stateAsInteger(state interface{}) (int, error) {
 	return 0, errTypeConversion
 }
 
+func stateAsAnsiColorCode(state interface{}) (AnsiColorCode, error) {
+	if typed, isTyped := state.(AnsiColorCode); isTyped {
+		return typed, nil
+	}
+	return ColorReset, errTypeConversion
+}
+
 func stateAsEventFlag(state interface{}) (uint64, error) {
 	if typed, isTyped := state.(uint64); isTyped {
 		return typed, nil
@@ -77,9 +85,27 @@ func stateAsDuration(state interface{}) (time.Duration, error) {
 	return 0, errTypeConversion
 }
 
+func stateAsString(state interface{}) (string, error) {
+	if typed, isTyped := state.(string); isTyped {
+		return typed, nil
+	}
+	return "", errTypeConversion
+}
+
 func stateAsBytes(state interface{}) ([]byte, error) {
 	if typed, isTyped := state.([]byte); isTyped {
 		return typed, nil
 	}
 	return nil, errTypeConversion
+}
+
+func envFlagSet(flagName string, defaultValue bool) bool {
+	flagValue := os.Getenv(flagName)
+	if len(flagValue) > 0 {
+		if strings.ToUpper(flagValue) == "TRUE" || flagValue == "1" {
+			return true
+		}
+		return false
+	}
+	return defaultValue
 }

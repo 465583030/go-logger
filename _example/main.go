@@ -30,7 +30,7 @@ func indexHandler(res http.ResponseWriter, req *http.Request) {
 
 func fatalErrorHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusInternalServerError)
-	logger.Diagnostics().Fatal(exception.New("this is an exception"))
+	logger.Diagnostics().Fatal(exception.New("this is a fatal exception"))
 	res.Write([]byte(`{"status":"not ok."}`))
 }
 
@@ -41,8 +41,8 @@ func errorHandler(res http.ResponseWriter, req *http.Request) {
 }
 
 func warningHandler(res http.ResponseWriter, req *http.Request) {
-	res.WriteHeader(http.StatusInternalServerError)
-	logger.Diagnostics().Warning(exception.New("this is an exception"))
+	res.WriteHeader(http.StatusBadRequest)
+	logger.Diagnostics().Warning(exception.New("this is warning"))
 	res.Write([]byte(`{"status":"not ok."}`))
 }
 
@@ -65,7 +65,7 @@ func port() string {
 }
 
 func main() {
-	logger.InitializeDiagnostics(logger.EventAll, logger.NewLogWriter(os.Stdout, os.Stderr))
+	logger.InitializeDiagnosticsFromEnvironment()
 	logger.Diagnostics().AddEventListener(logger.EventRequest, logger.NewRequestHandler(func(writer logger.Logger, req *http.Request) {
 		logger.WriteRequest(writer, req)
 	}))

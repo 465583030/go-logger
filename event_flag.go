@@ -1,5 +1,12 @@
 package logger
 
+import (
+	"strconv"
+	"strings"
+
+	exception "github.com/blendlabs/go-exception"
+)
+
 const (
 	// EventNone is effectively logging disabled.
 	EventNone = uint64(0)
@@ -16,9 +23,6 @@ const (
 	// EventInfo enables logging for informational messages.
 	EventInfo = 1 << iota
 
-	// EventUserError enables output for user error events.
-	EventUserError = 1 << iota
-
 	// EventRequest is a helper event for logging request events.
 	EventRequest = 1 << iota
 	// EventRequestComplete is a helper event for logging request events with stats.
@@ -26,8 +30,29 @@ const (
 	// EventRequestBody is a helper event for logging incoming post bodies.
 	EventRequestBody = 1 << iota
 
-	// EventResponseBody is a helper event for logging response bodies.
-	EventResponseBody = 1 << iota
+	// EventResponse is a helper event for logging response bodies.
+	EventResponse = 1 << iota
+
+	// EventUserError enables output for user error events.
+	EventUserError = 1 << iota
+)
+
+var (
+	// EventFlagNames is a map of event flag values to their plaintext names.
+	EventFlagNames = map[string]uint64{
+		"NONE":                   EventNone,
+		"ALL":                    EventAll,
+		"LOG_SHOW_FATAL":         EventFatalError,
+		"LOG_SHOW_ERROR":         EventError,
+		"LOG_SHOW_WARNING":       EventWarning,
+		"LOG_SHOW_DEBUG":         EventDebug,
+		"LOG_SHOW_INFO":          EventInfo,
+		"LOG_SHOW_REQUEST_START": EventRequest,
+		"LOG_SHOW_REQUEST":       EventRequestComplete,
+		"LOG_SHOW_REQUEST_BODY":  EventRequestBody,
+		"LOG_SHOW_RESPONSE":      EventResponse,
+		"LOG_SHOW_USER_ERROR":    EventUserError,
+	}
 )
 
 // EventFlagAll returns if all the reference bits are set for a given value
@@ -47,4 +72,46 @@ func EventFlagCombine(values ...uint64) uint64 {
 		outputFlag = outputFlag | value
 	}
 	return outputFlag
+}
+
+// ParseEventFlagNameSet parses an event name csv.
+func ParseEventFlagNameSet(flagValue string) (uint64, error) {
+	if len(flagValue) == 0 {
+		return EventNone, exception.New("Empty `flagValue`")
+	}
+
+	if value, parseError := strconv.ParseInt(flagValue, 10, 64); parseError == nil {
+		return uint64(value), nil
+	}
+
+	return ParseEventFlagNames(strings.Split(flagValue, ",")...)
+}
+
+// ParseEventFlagNames parses an array of names into a bit-mask.
+func ParseEventFlagNames(flagValues ...string) (uint64, error) {
+	var result uint64
+	for _, flagValue := range flagValues {
+		if parsedValue, parseError := ParseVerbosityFlagName(flagValue); parseError == nil {
+			result = result | parsedValue
+		} else {
+			return result, parseError
+		}
+	}
+	return result, nil
+}
+
+// ParseVerbosityFlagName parses a single verbosity flag name
+func ParseVerbosityFlagName(flagValue string) (uint64, error) {
+	flagValueCleaned := strings.Trim(strings.ToUpper(flagValue), " \t\n")
+	switch flagValueCleaned {
+	case "ALL":
+		return EventAll, nil
+	case "NONE":
+		return EventNone, nil
+	default:
+		if eventFlag, hasEventFlag := EventFlagNames[flagValueCleaned]; hasEventFlag {
+			return eventFlag, nil
+		}
+		return EventNone, exception.Newf("Invalid Flag Value: %s", flagValueCleaned)
+	}
 }

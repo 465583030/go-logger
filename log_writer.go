@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
+	"os"
 	"time"
 
 	"github.com/blendlabs/go-workqueue"
@@ -16,13 +16,21 @@ const (
 	DefaultBufferSize = 1 << 8
 )
 
-var (
-	_writer     *LogWriter
-	_writerLock sync.Mutex
-)
+// NewLogWriterFromEnvironment initializes a log writer from the environment.
+func NewLogWriterFromEnvironment() *LogWriter {
+	return &LogWriter{
+		Output:        NewSyncWriter(os.Stdout),
+		ErrorOutput:   NewSyncWriter(os.Stderr),
+		UseAnsiColors: envFlagSet("LOG_COLOR", true),
+		ShowTimestamp: envFlagSet("LOG_SHOW_TIME", true),
+		ShowLabel:     envFlagSet("LOG_SHOW_LABEL", true),
+		Label:         os.Getenv("LOG_LABEL"),
+		bufferPool:    NewBufferPool(DefaultBufferSize),
+	}
+}
 
 // NewLogWriter returns a new writer.
-func NewLogWriter(output io.Writer, errorOutputs ...io.Writer) *LogWriter {
+func NewLogWriter(output io.Writer, optionalErrorOutput ...io.Writer) *LogWriter {
 	agent := &LogWriter{
 		Output:        NewSyncWriter(output),
 		UseAnsiColors: true,
@@ -30,8 +38,8 @@ func NewLogWriter(output io.Writer, errorOutputs ...io.Writer) *LogWriter {
 		ShowLabel:     false,
 		bufferPool:    NewBufferPool(DefaultBufferSize),
 	}
-	if len(errorOutputs) > 0 {
-		agent.ErrorOutput = errorOutputs[0]
+	if len(optionalErrorOutput) > 0 {
+		agent.ErrorOutput = optionalErrorOutput[0]
 	}
 	return agent
 }
