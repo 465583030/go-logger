@@ -65,17 +65,23 @@ func port() string {
 }
 
 func main() {
-	logger.InitializeDiagnosticsFromEnvironment()
+	diag, err := logger.NewDiagnosticsAgentFromEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
+	logger.SetDiagnostics(diag)
+	logger.Diagnostics().EventQueue().UseSynchronousDispatch() //events fire in order, but will hang if queue is full
+	logger.Diagnostics().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
 	logger.Diagnostics().AddEventListener(logger.EventRequest,
-		logger.NewRequestHandler(func(writer logger.Logger, ts logger.TimingSource, req *http.Request) {
+		logger.NewRequestHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request) {
 			logger.WriteRequest(writer, ts, req)
 		}))
 	logger.Diagnostics().AddEventListener(logger.EventRequestComplete,
-		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimingSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
+		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
 			logger.WriteRequestComplete(writer, ts, req, statusCode, contentLengthBytes, elapsed)
 		}))
 	logger.Diagnostics().AddEventListener(logger.EventRequestBody,
-		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimingSource, body []byte) {
+		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimeSource, body []byte) {
 			logger.WriteRequestBody(writer, ts, body)
 		}))
 

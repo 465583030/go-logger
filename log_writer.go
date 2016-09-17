@@ -10,11 +10,23 @@ import (
 )
 
 const (
-	// DefaultBufferSize is the default inner buffer size used in Fprintf.
-	DefaultBufferSize = 1 << 8
+	// DefaultBufferPoolSize is the default buffer pool size.
+	DefaultBufferPoolSize = 1 << 8 // 256
 
 	// DefaultTimeFormat is the default time format.
 	DefaultTimeFormat = time.RFC3339
+)
+
+//env var names
+const (
+	// EnvironmentVariableUseAnsiColors is the env var that controls if we use ansi colors in output.
+	EnvironmentVariableUseAnsiColors = "LOG_USE_COLOR"
+	// EnvironmentVariableShowTimestamp is the env var that controls if we show timestamps in output.
+	EnvironmentVariableShowTimestamp = "LOG_SHOW_TIME"
+	// EnvironmentVariableShowLabel is the env var that controls if we show a descriptive label in output.
+	EnvironmentVariableShowLabel = "LOG_SHOW_LABEL"
+	// EnvironmentVariableLogLabel is the env var that sets the descriptive label in output.
+	EnvironmentVariableLogLabel = "LOG_LABEL"
 )
 
 // NewLogWriterFromEnvironment initializes a log writer from the environment.
@@ -22,11 +34,11 @@ func NewLogWriterFromEnvironment() *LogWriter {
 	return &LogWriter{
 		Output:        NewSyncWriter(os.Stdout),
 		ErrorOutput:   NewSyncWriter(os.Stderr),
-		useAnsiColors: envFlagSet("LOG_USE_COLOR", true),
-		showTimestamp: envFlagSet("LOG_SHOW_TIME", true),
-		showLabel:     envFlagSet("LOG_SHOW_LABEL", true),
-		label:         os.Getenv("LOG_LABEL"),
-		bufferPool:    NewBufferPool(DefaultBufferSize),
+		useAnsiColors: envFlagSet(EnvironmentVariableUseAnsiColors, true),
+		showTimestamp: envFlagSet(EnvironmentVariableShowTimestamp, true),
+		showLabel:     envFlagSet(EnvironmentVariableShowLabel, true),
+		label:         os.Getenv(EnvironmentVariableLogLabel),
+		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
 	}
 }
 
@@ -37,7 +49,7 @@ func NewLogWriter(output io.Writer, optionalErrorOutput ...io.Writer) *LogWriter
 		useAnsiColors: true,
 		showTimestamp: true,
 		showLabel:     false,
-		bufferPool:    NewBufferPool(DefaultBufferSize),
+		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
 	}
 	if len(optionalErrorOutput) > 0 {
 		agent.ErrorOutput = optionalErrorOutput[0]

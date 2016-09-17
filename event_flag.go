@@ -40,8 +40,6 @@ const (
 var (
 	// EventFlagNames is a map of event flag values to their plaintext names.
 	EventFlagNames = map[string]uint64{
-		"NONE":                   EventNone,
-		"ALL":                    EventAll,
 		"LOG_SHOW_FATAL":         EventFatalError,
 		"LOG_SHOW_ERROR":         EventError,
 		"LOG_SHOW_WARNING":       EventWarning,
@@ -118,11 +116,11 @@ func ParseEventName(flagValue string) (uint64, error) {
 
 // ExpandEventNames expands an event flag set into plaintext names.
 func ExpandEventNames(eventFlag uint64) string {
-	if eventFlag == EventNone {
-		return "NONE"
-	}
 	if eventFlag == EventAll {
 		return "ALL"
+	}
+	if eventFlag == EventNone {
+		return "NONE"
 	}
 	var names []string
 	for name, flag := range EventFlagNames {
