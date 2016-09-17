@@ -18,10 +18,10 @@ func TestSeconds(t *testing.T) {
 func TestMilliseconds(t *testing.T) {
 	assert := assert.New(t)
 
-	assert.Equal(1000, Millis(time.Second))
-	assert.Equal(2000, Millis(2*time.Second))
-	assert.Equal(500, Millis(500*time.Millisecond))
-	assert.Equal(0.5, Millis(500*time.Microsecond))
+	assert.Equal(1000, Milliseconds(time.Second))
+	assert.Equal(2000, Milliseconds(2*time.Second))
+	assert.Equal(500, Milliseconds(500*time.Millisecond))
+	assert.Equal(0.5, Milliseconds(500*time.Microsecond))
 }
 
 func TestMicroseconds(t *testing.T) {

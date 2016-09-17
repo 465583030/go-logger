@@ -7,7 +7,7 @@ import (
 )
 
 // WriteRequest is a helper method to write request start events to a writer.
-func WriteRequest(writer Logger, req *http.Request) {
+func WriteRequest(writer Logger, ts TimingSource, req *http.Request) {
 	buffer := writer.GetBuffer()
 	defer writer.PutBuffer(buffer)
 
@@ -20,11 +20,11 @@ func WriteRequest(writer Logger, req *http.Request) {
 	buffer.WriteString(req.URL.Path)
 	buffer.WriteRune(RuneSpace)
 
-	writer.Write(buffer.Bytes())
+	writer.WriteWithTimingSource(ts, buffer.Bytes())
 }
 
 // WriteRequestComplete is a helper method to write request complete events to a writer.
-func WriteRequestComplete(writer Logger, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
+func WriteRequestComplete(writer Logger, ts TimingSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
 	buffer := writer.GetBuffer()
 	defer writer.PutBuffer(buffer)
 
@@ -42,16 +42,16 @@ func WriteRequestComplete(writer Logger, req *http.Request, statusCode, contentL
 	buffer.WriteRune(RuneSpace)
 	buffer.WriteString(FormatFileSize(contentLengthBytes))
 
-	writer.Write(buffer.Bytes())
+	writer.WriteWithTimingSource(ts, buffer.Bytes())
 }
 
 // WriteRequestBody is a helper method to write request start events to a writer.
-func WriteRequestBody(writer Logger, body []byte) {
+func WriteRequestBody(writer Logger, ts TimingSource, body []byte) {
 	buffer := writer.GetBuffer()
 	defer writer.PutBuffer(buffer)
 	buffer.WriteString(writer.Colorize("Request Body", ColorGreen))
 	buffer.WriteRune(RuneSpace)
 	buffer.Write(body)
 
-	writer.Write(buffer.Bytes())
+	writer.WriteWithTimingSource(ts, buffer.Bytes())
 }

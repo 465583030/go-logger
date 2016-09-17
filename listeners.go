@@ -6,42 +6,42 @@ import (
 )
 
 // EventListener is a listener for a specific event as given by its flag.
-type EventListener func(writer Logger, eventFlag uint64, state ...interface{})
+type EventListener func(writer Logger, ts TimingSource, eventFlag uint64, state ...interface{})
 
 // ErrorListener is a handler for error events.
-type ErrorListener func(writer Logger, err error)
+type ErrorListener func(writer Logger, ts TimingSource, err error)
 
 // NewErrorHandler returns a new handler for EventFatalError and EventError events.
 func NewErrorHandler(errorHandler ErrorListener) EventListener {
-	return func(writer Logger, eventFlag uint64, state ...interface{}) {
+	return func(writer Logger, ts TimingSource, eventFlag uint64, state ...interface{}) {
 		if len(state) > 0 {
 			if typedError, isTyped := state[0].(error); isTyped {
-				errorHandler(writer, typedError)
+				errorHandler(writer, ts, typedError)
 			}
 		}
 	}
 }
 
 // RequestListener is a listener for request events.
-type RequestListener func(writer Logger, req *http.Request)
+type RequestListener func(writer Logger, ts TimingSource, req *http.Request)
 
 // NewRequestHandler returns a new handler for request events.
 func NewRequestHandler(reqHandler RequestListener) EventListener {
-	return func(writer Logger, eventFlag uint64, state ...interface{}) {
+	return func(writer Logger, ts TimingSource, eventFlag uint64, state ...interface{}) {
 		if len(state) > 0 {
 			if typedRequest, isTyped := state[0].(*http.Request); isTyped {
-				reqHandler(writer, typedRequest)
+				reqHandler(writer, ts, typedRequest)
 			}
 		}
 	}
 }
 
 // RequestCompleteListener is a listener for request events.
-type RequestCompleteListener func(writer Logger, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration)
+type RequestCompleteListener func(writer Logger, ts TimingSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration)
 
 // NewRequestCompleteHandler returns a new handler for request events.
 func NewRequestCompleteHandler(reqCompleteHandler RequestCompleteListener) EventListener {
-	return func(writer Logger, eventFlag uint64, state ...interface{}) {
+	return func(writer Logger, ts TimingSource, eventFlag uint64, state ...interface{}) {
 		if len(state) < 3 {
 			return
 		}
@@ -66,16 +66,16 @@ func NewRequestCompleteHandler(reqCompleteHandler RequestCompleteListener) Event
 			return
 		}
 
-		reqCompleteHandler(writer, req, statusCode, contentLengthBytes, elapsed)
+		reqCompleteHandler(writer, ts, req, statusCode, contentLengthBytes, elapsed)
 	}
 }
 
 // RequestBodyListener is a listener for request bodies.
-type RequestBodyListener func(writer Logger, body []byte)
+type RequestBodyListener func(writer Logger, ts TimingSource, body []byte)
 
 // NewRequestBodyHandler returns a new handler for request body events.
 func NewRequestBodyHandler(reqBodyHandler RequestBodyListener) EventListener {
-	return func(writer Logger, eventFlag uint64, state ...interface{}) {
+	return func(writer Logger, ts TimingSource, eventFlag uint64, state ...interface{}) {
 		if len(state) < 1 {
 			return
 		}
@@ -83,6 +83,6 @@ func NewRequestBodyHandler(reqBodyHandler RequestBodyListener) EventListener {
 		if err != nil {
 			return
 		}
-		reqBodyHandler(writer, body)
+		reqBodyHandler(writer, ts, body)
 	}
 }

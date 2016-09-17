@@ -78,6 +78,20 @@ func stateAsEventFlag(state interface{}) (uint64, error) {
 	return 0, errTypeConversion
 }
 
+func stateAsTime(state interface{}) (time.Time, error) {
+	if typed, isTyped := state.(time.Time); isTyped {
+		return typed, nil
+	}
+	return time.Time{}, errTypeConversion
+}
+
+func stateAsTimingSource(state interface{}) (TimingSource, error) {
+	if typed, isTyped := state.(TimingSource); isTyped {
+		return typed, nil
+	}
+	return SystemClock, errTypeConversion
+}
+
 func stateAsDuration(state interface{}) (time.Duration, error) {
 	if typed, isTyped := state.(time.Duration); isTyped {
 		return typed, nil

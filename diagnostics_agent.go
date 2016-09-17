@@ -11,7 +11,7 @@ import (
 var (
 	// DefaultDiagnosticsAgentQueueWorkers is the number of consumers
 	// for the diagnostics agent work queue.
-	DefaultDiagnosticsAgentQueueWorkers = 1 //runtime.NumCPU()
+	DefaultDiagnosticsAgentQueueWorkers = 1
 )
 
 var (
@@ -58,9 +58,12 @@ func Diagnostics() *DiagnosticsAgent {
 func NewDiagnosticsAgent(verbosity uint64, writers ...Logger) *DiagnosticsAgent {
 	diag := &DiagnosticsAgent{
 		verbosity:  verbosity,
-		eventQueue: workQueue.NewQueueWithBufferSize(4096),
+		eventQueue: workQueue.NewQueueWithWorkers(DefaultDiagnosticsAgentQueueWorkers),
 	}
-	diag.eventQueue.Start(DefaultDiagnosticsAgentQueueWorkers)
+	diag.eventQueue.UseSynchronousDispatch() //dispatch items in order
+	diag.eventQueue.SetMaxWorkItems(1 << 20) //more than this and queuing will block
+	diag.eventQueue.Start()
+
 	if len(writers) > 0 {
 		diag.writer = writers[0]
 	} else {
@@ -87,16 +90,25 @@ func (da *DiagnosticsAgent) AddEventListener(eventFlag uint64, listener EventLis
 
 // OnEvent fires the currently configured event listeners.
 func (da *DiagnosticsAgent) OnEvent(eventFlag uint64, state ...interface{}) {
-	da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{eventFlag}, state...)...)
+	if da.CheckVerbosity(eventFlag) {
+		if da.CheckHasHandler(eventFlag) {
+			da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{Now(), eventFlag}, state...)...)
+		}
+	}
 }
 
 // OnEvent fires the currently configured event listeners.
 func (da *DiagnosticsAgent) fireEvent(actionState ...interface{}) error {
-	if len(actionState) < 1 {
+	if len(actionState) < 2 {
 		return nil
 	}
 
-	eventFlag, err := stateAsEventFlag(actionState[0])
+	timingSource, err := stateAsTimingSource(actionState[0])
+	if err != nil {
+		return err
+	}
+
+	eventFlag, err := stateAsEventFlag(actionState[1])
 	if err != nil {
 		return err
 	}
@@ -104,10 +116,20 @@ func (da *DiagnosticsAgent) fireEvent(actionState ...interface{}) error {
 	listeners := da.eventListeners[eventFlag]
 	for x := 0; x < len(listeners); x++ {
 		listener := listeners[x]
-		listener(da.writer, eventFlag, actionState[1:]...)
+		listener(da.writer, timingSource, eventFlag, actionState[2:]...)
 	}
 
 	return nil
+}
+
+// QueueLen returns the length of the queue.
+func (da *DiagnosticsAgent) QueueLen() int {
+	return da.eventQueue.Len()
+}
+
+// Verbosity sets the agent verbosity synchronously.
+func (da *DiagnosticsAgent) Verbosity() uint64 {
+	return da.verbosity
 }
 
 // SetVerbosity sets the agent verbosity synchronously.
@@ -120,31 +142,42 @@ func (da *DiagnosticsAgent) CheckVerbosity(flagValue uint64) bool {
 	return EventFlagAny(da.verbosity, flagValue)
 }
 
+// CheckHasHandler returns if there are registered handlers for an event.
+func (da *DiagnosticsAgent) CheckHasHandler(event uint64) bool {
+	_, hasHandler := da.eventListeners[event]
+	return hasHandler
+}
+
 // Eventf checks an event flag and writes a message with a given label and color.
 func (da *DiagnosticsAgent) Eventf(eventFlag uint64, label string, labelColor AnsiColorCode, format string, args ...interface{}) {
 	if da.CheckVerbosity(eventFlag) && len(format) > 0 {
 		defer da.OnEvent(eventFlag)
-		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{label, labelColor, format}, args...)...)
+		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{Now(), label, labelColor, format}, args...)...)
 	}
 }
 
 func (da *DiagnosticsAgent) writeEventMessage(actionState ...interface{}) error {
-	if len(actionState) < 3 {
+	if len(actionState) < 4 {
 		return nil
 	}
-	label, err := stateAsString(actionState[0])
+
+	timingSource, err := stateAsTimingSource(actionState[0])
 	if err != nil {
 		return err
 	}
-	labelColor, err := stateAsAnsiColorCode(actionState[1])
+	label, err := stateAsString(actionState[1])
 	if err != nil {
 		return err
 	}
-	format, err := stateAsString(actionState[2])
+	labelColor, err := stateAsAnsiColorCode(actionState[2])
 	if err != nil {
 		return err
 	}
-	da.writer.Printf("%s %s", da.writer.Colorize(label, labelColor), fmt.Sprintf(format, actionState[3:]...))
+	format, err := stateAsString(actionState[3])
+	if err != nil {
+		return err
+	}
+	da.writer.PrintfWithTimingSource(timingSource, "%s %s", da.writer.Colorize(label, labelColor), fmt.Sprintf(format, actionState[4:]...))
 	return nil
 }
 

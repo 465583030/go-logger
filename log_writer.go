@@ -14,6 +14,9 @@ import (
 const (
 	// DefaultBufferSize is the default inner buffer size used in Fprintf.
 	DefaultBufferSize = 1 << 8
+
+	// DefaultTimeFormat is the default time format.
+	DefaultTimeFormat = time.RFC3339
 )
 
 // NewLogWriterFromEnvironment initializes a log writer from the environment.
@@ -49,6 +52,8 @@ type LogWriter struct {
 	ShowTimestamp bool
 	ShowLabel     bool
 	UseAnsiColors bool
+
+	TimeFormat string
 
 	Output      io.Writer
 	ErrorOutput io.Writer
@@ -90,8 +95,15 @@ func (wr *LogWriter) ColorizeByStatusCode(statusCode int, value string) string {
 }
 
 // GetTimestamp returns a new timestamp string.
-func (wr *LogWriter) GetTimestamp() string {
-	return wr.Colorize(time.Now().UTC().Format(time.RFC3339), ColorGray)
+func (wr *LogWriter) GetTimestamp(optionalTimingSource ...TimingSource) string {
+	timeFormat := DefaultTimeFormat
+	if len(wr.TimeFormat) > 0 {
+		timeFormat = wr.TimeFormat
+	}
+	if len(optionalTimingSource) > 0 {
+		return wr.Colorize(optionalTimingSource[0].UTCNow().Format(timeFormat), ColorGray)
+	}
+	return wr.Colorize(time.Now().UTC().Format(timeFormat), ColorGray)
 }
 
 // GetLabel returns the app name.
@@ -104,13 +116,28 @@ func (wr *LogWriter) Printf(format string, args ...interface{}) {
 	wr.Fprintf(wr.Output, format, args...)
 }
 
+// PrintfWithTimingSource writes to the output stream, with a given timing source.
+func (wr *LogWriter) PrintfWithTimingSource(timingSource TimingSource, format string, args ...interface{}) {
+	wr.FprintfWithTimingSource(timingSource, wr.Output, format, args...)
+}
+
 // Errorf writes to the error output stream.
 func (wr *LogWriter) Errorf(format string, args ...interface{}) {
 	wr.Fprintf(wr.GetErrorOutput(), format, args...)
 }
 
-// Write writes a binary blob to a given writer.
+// ErrorfWithTimingSource writes to the error output stream, with a given timing source.
+func (wr *LogWriter) ErrorfWithTimingSource(timingSource TimingSource, format string, args ...interface{}) {
+	wr.FprintfWithTimingSource(timingSource, wr.GetErrorOutput(), format, args...)
+}
+
+// Write writes a binary blob to a given writer, and with a given timing source.
 func (wr *LogWriter) Write(binary []byte) (int64, error) {
+	return wr.WriteWithTimingSource(SystemClock, binary)
+}
+
+// WriteWithTimingSource writes a binary blob to a given writer, and with a given timing source.
+func (wr *LogWriter) WriteWithTimingSource(timingSource TimingSource, binary []byte) (int64, error) {
 	buf := wr.bufferPool.Get()
 	defer wr.bufferPool.Put(buf)
 
@@ -131,6 +158,11 @@ func (wr *LogWriter) Write(binary []byte) (int64, error) {
 
 // Fprintf writes a given string and args to a writer.
 func (wr *LogWriter) Fprintf(w io.Writer, format string, args ...interface{}) {
+	wr.FprintfWithTimingSource(SystemClock, w, format, args...)
+}
+
+// FprintfWithTimingSource writes a given string and args to a writer and with a given timing source.
+func (wr *LogWriter) FprintfWithTimingSource(timingSource TimingSource, w io.Writer, format string, args ...interface{}) {
 	if w == nil {
 		return
 	}
@@ -146,7 +178,7 @@ func (wr *LogWriter) Fprintf(w io.Writer, format string, args ...interface{}) {
 	defer wr.bufferPool.Put(buf)
 
 	if wr.ShowTimestamp {
-		buf.WriteString(wr.GetTimestamp())
+		buf.WriteString(wr.GetTimestamp(timingSource))
 		buf.WriteRune(RuneSpace)
 	}
 

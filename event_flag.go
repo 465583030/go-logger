@@ -84,14 +84,14 @@ func ParseEventFlagNameSet(flagValue string) (uint64, error) {
 		return uint64(value), nil
 	}
 
-	return ParseEventFlagNames(strings.Split(flagValue, ",")...)
+	return ParseEventNames(strings.Split(flagValue, ",")...)
 }
 
-// ParseEventFlagNames parses an array of names into a bit-mask.
-func ParseEventFlagNames(flagValues ...string) (uint64, error) {
+// ParseEventNames parses an array of names into a bit-mask.
+func ParseEventNames(flagValues ...string) (uint64, error) {
 	var result uint64
 	for _, flagValue := range flagValues {
-		if parsedValue, parseError := ParseVerbosityFlagName(flagValue); parseError == nil {
+		if parsedValue, parseError := ParseEventName(flagValue); parseError == nil {
 			result = result | parsedValue
 		} else {
 			return result, parseError
@@ -100,8 +100,8 @@ func ParseEventFlagNames(flagValues ...string) (uint64, error) {
 	return result, nil
 }
 
-// ParseVerbosityFlagName parses a single verbosity flag name
-func ParseVerbosityFlagName(flagValue string) (uint64, error) {
+// ParseEventName parses a single verbosity flag name
+func ParseEventName(flagValue string) (uint64, error) {
 	flagValueCleaned := strings.Trim(strings.ToUpper(flagValue), " \t\n")
 	switch flagValueCleaned {
 	case "ALL":
@@ -114,4 +114,21 @@ func ParseVerbosityFlagName(flagValue string) (uint64, error) {
 		}
 		return EventNone, exception.Newf("Invalid Flag Value: %s", flagValueCleaned)
 	}
+}
+
+// ExpandEventNames expands an event flag set into plaintext names.
+func ExpandEventNames(eventFlag uint64) string {
+	if eventFlag == EventNone {
+		return "NONE"
+	}
+	if eventFlag == EventAll {
+		return "ALL"
+	}
+	var names []string
+	for name, flag := range EventFlagNames {
+		if EventFlagAny(eventFlag, flag) {
+			names = append(names, name)
+		}
+	}
+	return strings.Join(names, ",")
 }

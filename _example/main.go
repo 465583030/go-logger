@@ -66,15 +66,18 @@ func port() string {
 
 func main() {
 	logger.InitializeDiagnosticsFromEnvironment()
-	logger.Diagnostics().AddEventListener(logger.EventRequest, logger.NewRequestHandler(func(writer logger.Logger, req *http.Request) {
-		logger.WriteRequest(writer, req)
-	}))
-	logger.Diagnostics().AddEventListener(logger.EventRequestComplete, logger.NewRequestCompleteHandler(func(writer logger.Logger, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
-		logger.WriteRequestComplete(writer, req, statusCode, contentLengthBytes, elapsed)
-	}))
-	logger.Diagnostics().AddEventListener(logger.EventRequestBody, logger.NewRequestBodyHandler(func(writer logger.Logger, body []byte) {
-		logger.WriteRequestBody(writer, body)
-	}))
+	logger.Diagnostics().AddEventListener(logger.EventRequest,
+		logger.NewRequestHandler(func(writer logger.Logger, ts logger.TimingSource, req *http.Request) {
+			logger.WriteRequest(writer, ts, req)
+		}))
+	logger.Diagnostics().AddEventListener(logger.EventRequestComplete,
+		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimingSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
+			logger.WriteRequestComplete(writer, ts, req, statusCode, contentLengthBytes, elapsed)
+		}))
+	logger.Diagnostics().AddEventListener(logger.EventRequestBody,
+		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimingSource, body []byte) {
+			logger.WriteRequestBody(writer, ts, body)
+		}))
 
 	http.HandleFunc("/", logged(indexHandler))
 	http.HandleFunc("/fatalerror", logged(fatalErrorHandler))
@@ -82,5 +85,6 @@ func main() {
 	http.HandleFunc("/warning", logged(warningHandler))
 	http.HandleFunc("/post", logged(postHandler))
 	logger.Diagnostics().Infof("Listening on :%s", port())
+	logger.Diagnostics().Infof("Diagnostics %s", logger.ExpandEventNames(logger.Diagnostics().Verbosity()))
 	log.Fatal(http.ListenAndServe(":"+port(), nil))
 }
