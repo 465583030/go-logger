@@ -2,24 +2,24 @@ package logger
 
 import "time"
 
-// TimingSource is a type that provides a timestamp.
-type TimingSource interface {
+// TimeSource is a type that provides a timestamp.
+type TimeSource interface {
 	UTCNow() time.Time
 }
 
 // SystemClock is the an instance of the system clock timing source.
-var SystemClock = timingSourceSystemClock{}
+var SystemClock = timeSourceSystemClock{}
 
 // TimingSourceSystemClock is the system clock timing source.
-type timingSourceSystemClock struct{}
+type timeSourceSystemClock struct{}
 
 // UTCNow returns the current time in UTC.
-func (t timingSourceSystemClock) UTCNow() time.Time {
+func (t timeSourceSystemClock) UTCNow() time.Time {
 	return time.Now().UTC()
 }
 
 // Now returns a historical time instance as a timing source.
-func Now() TimeInstance {
+func Now() TimeSource {
 	return TimeInstance(time.Now())
 }
 

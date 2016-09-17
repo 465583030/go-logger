@@ -12,9 +12,9 @@ func TestLogWriterPrintf(t *testing.T) {
 
 	buffer := bytes.NewBuffer([]byte{})
 	writer := NewLogWriter(buffer, buffer)
-	writer.ShowTimestamp = false
-	writer.ShowLabel = false
-	writer.UseAnsiColors = false
+	writer.showTimestamp = false
+	writer.showLabel = false
+	writer.useAnsiColors = false
 	writer.Printf("test %s", "string")
 	assert.Equal("test string\n", string(buffer.Bytes()))
 }
@@ -24,10 +24,10 @@ func TestLogWriterPrintfWithLabel(t *testing.T) {
 
 	buffer := bytes.NewBuffer([]byte{})
 	writer := NewLogWriter(buffer, buffer)
-	writer.Label = "unit-test"
-	writer.ShowTimestamp = false
-	writer.ShowLabel = true
-	writer.UseAnsiColors = false
+	writer.label = "unit-test"
+	writer.showTimestamp = false
+	writer.showLabel = true
+	writer.useAnsiColors = false
 	writer.Printf("test %s", "string")
 	assert.Equal("unit-test test string\n", string(buffer.Bytes()))
 }
@@ -37,10 +37,10 @@ func TestLogWriterPrintfWithLabelColorized(t *testing.T) {
 
 	buffer := bytes.NewBuffer([]byte{})
 	writer := NewLogWriter(buffer, buffer)
-	writer.Label = "unit-test"
-	writer.ShowTimestamp = false
-	writer.ShowLabel = true
-	writer.UseAnsiColors = true
+	writer.label = "unit-test"
+	writer.showTimestamp = false
+	writer.showLabel = true
+	writer.useAnsiColors = true
 	writer.Printf("test %s", "string")
 	assert.Equal(ColorBlue.Apply("unit-test")+" test string\n", string(buffer.Bytes()))
 }
@@ -50,8 +50,8 @@ func TestWriterErrorOutputCoalesced(t *testing.T) {
 
 	buffer := bytes.NewBuffer([]byte{})
 	writer := NewLogWriter(buffer)
-	writer.ShowTimestamp = false
-	writer.UseAnsiColors = false
+	writer.showTimestamp = false
+	writer.useAnsiColors = false
 
 	writer.Errorf("test %s", "string")
 	assert.Equal("test string\n", string(buffer.Bytes()))
@@ -63,8 +63,8 @@ func TestWriterErrorOutput(t *testing.T) {
 	stdout := bytes.NewBuffer([]byte{})
 	stderr := bytes.NewBuffer([]byte{})
 	writer := NewLogWriter(stdout, stderr)
-	writer.ShowTimestamp = false
-	writer.UseAnsiColors = false
+	writer.showTimestamp = false
+	writer.useAnsiColors = false
 
 	writer.Errorf("test %s", "string")
 	assert.Equal(0, stdout.Len())

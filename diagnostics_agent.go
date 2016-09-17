@@ -80,6 +80,16 @@ type DiagnosticsAgent struct {
 	eventQueue     *workQueue.Queue
 }
 
+// Label returns the label for the diagnostics agent.
+func (da *DiagnosticsAgent) Label() string {
+	return da.writer.Label()
+}
+
+// SetLabel sets the logging label for the diagnostics agent.
+func (da *DiagnosticsAgent) SetLabel(label string) {
+	da.writer.SetLabel(label)
+}
+
 // AddEventListener adds a listener for errors.
 func (da *DiagnosticsAgent) AddEventListener(eventFlag uint64, listener EventListener) {
 	if da.eventListeners == nil {
@@ -103,7 +113,7 @@ func (da *DiagnosticsAgent) fireEvent(actionState ...interface{}) error {
 		return nil
 	}
 
-	timingSource, err := stateAsTimingSource(actionState[0])
+	timeSource, err := stateAsTimeSource(actionState[0])
 	if err != nil {
 		return err
 	}
@@ -116,7 +126,7 @@ func (da *DiagnosticsAgent) fireEvent(actionState ...interface{}) error {
 	listeners := da.eventListeners[eventFlag]
 	for x := 0; x < len(listeners); x++ {
 		listener := listeners[x]
-		listener(da.writer, timingSource, eventFlag, actionState[2:]...)
+		listener(da.writer, timeSource, eventFlag, actionState[2:]...)
 	}
 
 	return nil
@@ -156,12 +166,29 @@ func (da *DiagnosticsAgent) Eventf(eventFlag uint64, label string, labelColor An
 	}
 }
 
+// ErrorEventf checks an event flag and writes a message with a given label and color.
+func (da *DiagnosticsAgent) ErrorEventf(eventFlag uint64, label string, labelColor AnsiColorCode, format string, args ...interface{}) {
+	if da.CheckVerbosity(eventFlag) && len(format) > 0 {
+		defer da.OnEvent(eventFlag)
+		da.eventQueue.Enqueue(da.writeErrorEventMessage, append([]interface{}{Now(), label, labelColor, format}, args...)...)
+	}
+}
+
 func (da *DiagnosticsAgent) writeEventMessage(actionState ...interface{}) error {
+	return da.writeEventMessageWithOutput(da.writer.PrintfWithTimeSource, actionState...)
+}
+
+func (da *DiagnosticsAgent) writeErrorEventMessage(actionState ...interface{}) error {
+	return da.writeEventMessageWithOutput(da.writer.ErrorfWithTimeSource, actionState...)
+}
+
+// writeEventMessage writes an event message.
+func (da *DiagnosticsAgent) writeEventMessageWithOutput(output loggerOutputWithTimeSource, actionState ...interface{}) error {
 	if len(actionState) < 4 {
 		return nil
 	}
 
-	timingSource, err := stateAsTimingSource(actionState[0])
+	timeSource, err := stateAsTimeSource(actionState[0])
 	if err != nil {
 		return err
 	}
@@ -177,7 +204,8 @@ func (da *DiagnosticsAgent) writeEventMessage(actionState ...interface{}) error 
 	if err != nil {
 		return err
 	}
-	da.writer.PrintfWithTimingSource(timingSource, "%s %s", da.writer.Colorize(label, labelColor), fmt.Sprintf(format, actionState[4:]...))
+
+	output(timeSource, "%s %s", da.writer.Colorize(label, labelColor), fmt.Sprintf(format, actionState[4:]...))
 	return nil
 }
 
@@ -198,45 +226,38 @@ func (da *DiagnosticsAgent) DebugDump(object interface{}) {
 
 // Warningf logs a debug message to the output stream.
 func (da *DiagnosticsAgent) Warningf(format string, args ...interface{}) {
-	da.Eventf(EventWarning, "Warning", ColorYellow, format, args...)
+	da.ErrorEventf(EventWarning, "Warning", ColorYellow, format, args...)
 }
 
-// Warning logs a warning error to std out.
+// Warning logs a warning error to std err.
 func (da *DiagnosticsAgent) Warning(err error) error {
 	if err != nil {
-		if da.CheckVerbosity(EventWarning) {
-			da.Warningf(err.Error())
-		}
+		da.Warningf(err.Error())
 	}
 	return err
 }
 
 // Errorf writes an event to the log and triggers event listeners.
 func (da *DiagnosticsAgent) Errorf(format string, args ...interface{}) {
-	da.Eventf(EventError, "Error", ColorRed, format, args...)
+	da.ErrorEventf(EventError, "Error", ColorRed, format, args...)
 }
 
-// Fatal logs an error to std out.
+// Fatal logs an error to std err.
 func (da *DiagnosticsAgent) Error(err error) error {
 	if err != nil {
-		if da.CheckVerbosity(EventError) {
-			da.Errorf(err.Error())
-		}
+		da.Errorf(err.Error())
 	}
 	return err
 }
 
 // Fatalf writes an event to the log and triggers event listeners.
 func (da *DiagnosticsAgent) Fatalf(format string, args ...interface{}) {
-	da.Eventf(EventFatalError, "Fatal Error", ColorRed, format, args...)
+	da.ErrorEventf(EventFatalError, "Fatal Error", ColorRed, format, args...)
 }
 
-// Fatal logs an error to std out.
-func (da *DiagnosticsAgent) Fatal(err error) error {
+// Fatal logs the result of a panic to std err.
+func (da *DiagnosticsAgent) Fatal(err interface{}) {
 	if err != nil {
-		if da.CheckVerbosity(EventError) {
-			da.Fatalf(err.Error())
-		}
+		da.Fatalf("%v", err)
 	}
-	return err
 }

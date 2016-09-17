@@ -85,8 +85,8 @@ func stateAsTime(state interface{}) (time.Time, error) {
 	return time.Time{}, errTypeConversion
 }
 
-func stateAsTimingSource(state interface{}) (TimingSource, error) {
-	if typed, isTyped := state.(TimingSource); isTyped {
+func stateAsTimeSource(state interface{}) (TimeSource, error) {
+	if typed, isTyped := state.(TimeSource); isTyped {
 		return typed, nil
 	}
 	return SystemClock, errTypeConversion
