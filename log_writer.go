@@ -125,8 +125,8 @@ func (wr *LogWriter) Printf(format string, args ...interface{}) {
 }
 
 // PrintfWithTimeSource writes to the output stream, with a given timing source.
-func (wr *LogWriter) PrintfWithTimeSource(TimeSource TimeSource, format string, args ...interface{}) {
-	wr.FprintfWithTimeSource(TimeSource, wr.Output, format, args...)
+func (wr *LogWriter) PrintfWithTimeSource(ts TimeSource, format string, args ...interface{}) {
+	wr.FprintfWithTimeSource(ts, wr.Output, format, args...)
 }
 
 // Errorf writes to the error output stream.
@@ -135,8 +135,8 @@ func (wr *LogWriter) Errorf(format string, args ...interface{}) {
 }
 
 // ErrorfWithTimeSource writes to the error output stream, with a given timing source.
-func (wr *LogWriter) ErrorfWithTimeSource(TimeSource TimeSource, format string, args ...interface{}) {
-	wr.FprintfWithTimeSource(TimeSource, wr.GetErrorOutput(), format, args...)
+func (wr *LogWriter) ErrorfWithTimeSource(ts TimeSource, format string, args ...interface{}) {
+	wr.FprintfWithTimeSource(ts, wr.GetErrorOutput(), format, args...)
 }
 
 // Write writes a binary blob to a given writer, and with a given timing source.
@@ -145,12 +145,12 @@ func (wr *LogWriter) Write(binary []byte) (int64, error) {
 }
 
 // WriteWithTimeSource writes a binary blob to a given writer, and with a given timing source.
-func (wr *LogWriter) WriteWithTimeSource(TimeSource TimeSource, binary []byte) (int64, error) {
+func (wr *LogWriter) WriteWithTimeSource(ts TimeSource, binary []byte) (int64, error) {
 	buf := wr.bufferPool.Get()
 	defer wr.bufferPool.Put(buf)
 
 	if wr.showTimestamp {
-		buf.WriteString(wr.GetTimestamp())
+		buf.WriteString(wr.GetTimestamp(ts))
 		buf.WriteRune(RuneSpace)
 	}
 
@@ -170,7 +170,7 @@ func (wr *LogWriter) Fprintf(w io.Writer, format string, args ...interface{}) {
 }
 
 // FprintfWithTimeSource writes a given string and args to a writer and with a given timing source.
-func (wr *LogWriter) FprintfWithTimeSource(TimeSource TimeSource, w io.Writer, format string, args ...interface{}) {
+func (wr *LogWriter) FprintfWithTimeSource(ts TimeSource, w io.Writer, format string, args ...interface{}) {
 	if w == nil {
 		return
 	}
@@ -186,7 +186,7 @@ func (wr *LogWriter) FprintfWithTimeSource(TimeSource TimeSource, w io.Writer, f
 	defer wr.bufferPool.Put(buf)
 
 	if wr.showTimestamp {
-		buf.WriteString(wr.GetTimestamp(TimeSource))
+		buf.WriteString(wr.GetTimestamp(ts))
 		buf.WriteRune(RuneSpace)
 	}
 

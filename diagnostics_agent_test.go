@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/blendlabs/go-assert"
 )
@@ -261,4 +262,20 @@ func TestDiagnosticsAgentErrorf(t *testing.T) {
 	assert.Zero(stdout.Len())
 	assert.NotZero(stderr.Len())
 	assert.True(strings.HasSuffix(stderr.String(), "Hello World\n"), stderr.String())
+}
+
+func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
+	assert := assert.New(t)
+
+	buffer := bytes.NewBuffer([]byte{})
+	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	defer da.Close()
+
+	da.writer.SetUseAnsiColors(false)
+
+	ts := TimeInstance(time.Date(2016, 01, 02, 03, 04, 05, 06, time.UTC))
+	err := da.writeEventMessageWithOutput(da.writer.PrintfWithTimeSource, ts, "test", ColorWhite, "%s World", "Hello")
+	assert.Nil(err)
+	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)))
+	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
 }
