@@ -37,11 +37,11 @@ func InitializeDiagnosticsFromEnvironment() error {
 	_diagnosticsAgentLock.Lock()
 	defer _diagnosticsAgentLock.Unlock()
 
-	eventFlag, err := ParseEventFlagNameSet(os.Getenv("LOG_VERBOSITY"))
+	agent, err := NewDiagnosticsAgentFromEnvironment()
 	if err != nil {
 		return err
 	}
-	_diagnosticsAgent = NewDiagnosticsAgent(eventFlag, NewLogWriterFromEnvironment())
+	_diagnosticsAgent = agent
 	return nil
 }
 
