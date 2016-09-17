@@ -77,9 +77,14 @@ func NewDiagnosticsAgent(verbosity uint64, writers ...Logger) *DiagnosticsAgent 
 
 // NewDiagnosticsAgentFromEnvironment returns a new diagnostics with a given bitflag verbosity.
 func NewDiagnosticsAgentFromEnvironment() (*DiagnosticsAgent, error) {
-	eventFlag, err := ParseEventFlagNameSet(os.Getenv("LOG_VERBOSITY"))
-	if err != nil {
-		return nil, err
+	var err error
+	envEventFlag := os.Getenv("LOG_VERBOSITY")
+	eventFlag := EventFlagCombine(EventFatalError, EventError, EventRequestComplete, EventInfo)
+	if len(envEventFlag) > 0 {
+		eventFlag, err = ParseEventFlagNameSet(envEventFlag)
+		if err != nil {
+			return nil, err
+		}
 	}
 	diag := &DiagnosticsAgent{
 		verbosity:  eventFlag,
