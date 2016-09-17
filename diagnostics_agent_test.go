@@ -2,6 +2,7 @@ package logger
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -262,6 +263,26 @@ func TestDiagnosticsAgentErrorf(t *testing.T) {
 	assert.Zero(stdout.Len())
 	assert.NotZero(stderr.Len())
 	assert.True(strings.HasSuffix(stderr.String(), "Hello World\n"), stderr.String())
+}
+
+func TestDiagnosticsAgentFireEvent(t *testing.T) {
+	assert := assert.New(t)
+
+	buffer := bytes.NewBuffer([]byte{})
+	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	defer da.Close()
+	da.writer.SetUseAnsiColors(false)
+
+	ts := TimeInstance(time.Date(2016, 01, 02, 03, 04, 05, 06, time.UTC))
+	da.AddEventListener(EventInfo, func(wr Logger, ts TimeSource, e uint64, state ...interface{}) {
+		wr.WriteWithTimeSource(ts, []byte(fmt.Sprintf("Hello World")))
+	})
+
+	err := da.fireEvent(ts, EventInfo)
+	assert.Nil(err)
+
+	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)), buffer.String())
+	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
 }
 
 func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {

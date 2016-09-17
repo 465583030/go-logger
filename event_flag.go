@@ -13,28 +13,28 @@ const (
 	// EventAll represents every flag being enabled.
 	EventAll = ^EventNone
 	// EventFatalError enables logging errors
-	EventFatalError = 1 << iota
+	EventFatalError uint64 = 1 << iota
 	// EventError enables logging errors
-	EventError = 1 << iota
+	EventError uint64 = 1 << iota
 	// EventWarning enables logging for warning messages.
-	EventWarning = 1 << iota
+	EventWarning uint64 = 1 << iota
 	// EventDebug enables logging for debug messages.
-	EventDebug = 1 << iota
+	EventDebug uint64 = 1 << iota
 	// EventInfo enables logging for informational messages.
-	EventInfo = 1 << iota
+	EventInfo uint64 = 1 << iota
 
 	// EventRequest is a helper event for logging request events.
-	EventRequest = 1 << iota
+	EventRequest uint64 = 1 << iota
 	// EventRequestComplete is a helper event for logging request events with stats.
-	EventRequestComplete = 1 << iota
+	EventRequestComplete uint64 = 1 << iota
 	// EventRequestBody is a helper event for logging incoming post bodies.
-	EventRequestBody = 1 << iota
+	EventRequestBody uint64 = 1 << iota
 
 	// EventResponse is a helper event for logging response bodies.
-	EventResponse = 1 << iota
+	EventResponse uint64 = 1 << iota
 
 	// EventUserError enables output for user error events.
-	EventUserError = 1 << iota
+	EventUserError uint64 = 1 << iota
 )
 
 var (
