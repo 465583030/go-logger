@@ -53,8 +53,7 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	}()
 	os.Setenv("LOG_LABEL", "Testing Harness")
 
-	da, err := NewDiagnosticsAgentFromEnvironment()
-	assert.Nil(err)
+	da := NewDiagnosticsAgentFromEnvironment()
 	defer da.Close()
 
 	assert.Equal(EventAll, da.Verbosity())
@@ -81,8 +80,7 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	}()
 	os.Setenv("LOG_LABEL", "Testing Harness")
 
-	da, err := NewDiagnosticsAgentFromEnvironment()
-	assert.Nil(err)
+	da := NewDiagnosticsAgentFromEnvironment()
 	defer da.Close()
 
 	assert.True(da.CheckVerbosity(EventError))

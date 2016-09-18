@@ -14,7 +14,7 @@ var (
 	DefaultDiagnosticsAgentQueueWorkers = 1
 
 	// DefaultDiagnosticsAgentQueueLength is the maximum number of items to buffer in the event queue.
-	DefaultDiagnosticsAgentQueueLength = 1 << 10
+	DefaultDiagnosticsAgentQueueLength = 1 << 10 // 1024
 )
 
 var (
@@ -47,15 +47,15 @@ func newDiagnosticsEventQueue() *workQueue.Queue {
 }
 
 // NewDiagnosticsAgent returns a new diagnostics with a given bitflag verbosity.
-func NewDiagnosticsAgent(verbosity uint64, writers ...Logger) *DiagnosticsAgent {
+func NewDiagnosticsAgent(verbosity uint64, optionalWriter ...Logger) *DiagnosticsAgent {
 	diag := &DiagnosticsAgent{
 		verbosity:      verbosity,
 		eventQueue:     newDiagnosticsEventQueue(),
 		eventListeners: map[uint64][]EventListener{},
 	}
 
-	if len(writers) > 0 {
-		diag.writer = writers[0]
+	if len(optionalWriter) > 0 {
+		diag.writer = optionalWriter[0]
 	} else {
 		diag.writer = NewLogWriter(os.Stdout, os.Stderr)
 	}
@@ -63,18 +63,9 @@ func NewDiagnosticsAgent(verbosity uint64, writers ...Logger) *DiagnosticsAgent 
 }
 
 // NewDiagnosticsAgentFromEnvironment returns a new diagnostics with a given bitflag verbosity.
-func NewDiagnosticsAgentFromEnvironment() (*DiagnosticsAgent, error) {
-	envEventFlag := os.Getenv("LOG_VERBOSITY")
-	eventFlag := DefaultDiagnosticsAgentVerbosity
-	if len(envEventFlag) > 0 {
-		var err error
-		eventFlag, err = ParseEventFlagNameSet(envEventFlag)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return NewDiagnosticsAgent(eventFlag, NewLogWriterFromEnvironment()), nil
+func NewDiagnosticsAgentFromEnvironment() *DiagnosticsAgent {
+	eventFlag := EventsFromEnvironment(DefaultDiagnosticsAgentVerbosity)
+	return NewDiagnosticsAgent(eventFlag, NewLogWriterFromEnvironment())
 }
 
 // DiagnosticsAgent is a handler for various logging events with descendent handlers.
