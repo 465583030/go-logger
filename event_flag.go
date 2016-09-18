@@ -51,7 +51,6 @@ var (
 		"LOG_SHOW_WARNING":       EventWarning,
 		"LOG_SHOW_DEBUG":         EventDebug,
 		"LOG_SHOW_INFO":          EventInfo,
-		"LOG_SHOW_INFORMATIONAL": EventInfo,
 		"LOG_SHOW_REQUEST_START": EventRequest,
 		"LOG_SHOW_REQUEST":       EventRequestComplete,
 		"LOG_SHOW_REQUEST_BODY":  EventRequestBody,
