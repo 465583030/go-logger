@@ -41,17 +41,17 @@ func TestNewDiagnosticsAgent(t *testing.T) {
 func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	assert := assert.New(t)
 
-	oldLogVerbosity := os.Getenv("LOG_VERBOSITY")
+	oldLogVerbosity := os.Getenv(EnvironmentVariableLogEvents)
 	defer func() {
-		os.Setenv("LOG_VERBOSITY", oldLogVerbosity)
+		os.Setenv(EnvironmentVariableLogEvents, oldLogVerbosity)
 	}()
-	os.Setenv("LOG_VERBOSITY", "ALL")
+	os.Setenv(EnvironmentVariableLogEvents, "all")
 
-	oldLogLabel := os.Getenv("LOG_LABEL")
+	oldLogLabel := os.Getenv(EnvironmentVariableLogLabel)
 	defer func() {
-		os.Setenv("LOG_LABEL", oldLogLabel)
+		os.Setenv(EnvironmentVariableLogLabel, oldLogLabel)
 	}()
-	os.Setenv("LOG_LABEL", "Testing Harness")
+	os.Setenv(EnvironmentVariableLogLabel, "Testing Harness")
 
 	da := NewDiagnosticsAgentFromEnvironment()
 	defer da.Close()
@@ -68,17 +68,17 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert := assert.New(t)
 
-	oldLogVerbosity := os.Getenv("LOG_VERBOSITY")
+	oldLogVerbosity := os.Getenv(EnvironmentVariableLogEvents)
 	defer func() {
-		os.Setenv("LOG_VERBOSITY", oldLogVerbosity)
+		os.Setenv(EnvironmentVariableLogEvents, oldLogVerbosity)
 	}()
-	os.Setenv("LOG_VERBOSITY", "LOG_SHOW_ERROR,LOG_SHOW_INFO,LOG_SHOW_REQUEST")
+	os.Setenv(EnvironmentVariableLogEvents, "error,info,request")
 
-	oldLogLabel := os.Getenv("LOG_LABEL")
+	oldLogLabel := os.Getenv(EnvironmentVariableLogLabel)
 	defer func() {
-		os.Setenv("LOG_LABEL", oldLogLabel)
+		os.Setenv(EnvironmentVariableLogLabel, oldLogLabel)
 	}()
-	os.Setenv("LOG_LABEL", "Testing Harness")
+	os.Setenv(EnvironmentVariableLogLabel, "Testing Harness")
 
 	da := NewDiagnosticsAgentFromEnvironment()
 	defer da.Close()
