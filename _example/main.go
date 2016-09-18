@@ -53,7 +53,7 @@ func postHandler(res http.ResponseWriter, req *http.Request) {
 	defer pool.Put(b)
 	b.ReadFrom(req.Body)
 	res.Write([]byte(fmt.Sprintf(`{"status":"ok!","received_bytes":%d}`, b.Len())))
-	logger.Diagnostics().OnEvent(logger.EventRequestBody, b.Bytes())
+	logger.Diagnostics().OnEvent(logger.EventPostBody, b.Bytes())
 }
 
 func port() string {
@@ -65,11 +65,7 @@ func port() string {
 }
 
 func main() {
-	diag, err := logger.NewDiagnosticsAgentFromEnvironment()
-	if err != nil {
-		log.Fatal(err)
-	}
-	logger.SetDiagnostics(diag)
+	logger.SetDiagnostics(logger.NewDiagnosticsAgentFromEnvironment())
 	logger.Diagnostics().EventQueue().UseSynchronousDispatch() //events fire in order, but will hang if queue is full
 	logger.Diagnostics().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
 	logger.Diagnostics().AddEventListener(logger.EventRequest,
@@ -80,10 +76,15 @@ func main() {
 		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
 			logger.WriteRequestComplete(writer, ts, req, statusCode, contentLengthBytes, elapsed)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventRequestBody,
+	logger.Diagnostics().AddEventListener(logger.EventPostBody,
 		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimeSource, body []byte) {
 			logger.WriteRequestBody(writer, ts, body)
 		}))
+	logger.Diagnostics().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, e uint64, args ...interface{}) {
+		//ping an external service?
+		//log something to the db?
+		//this action will be handled by a separate go-routine
+	})
 
 	http.HandleFunc("/", logged(indexHandler))
 	http.HandleFunc("/fatalerror", logged(fatalErrorHandler))
