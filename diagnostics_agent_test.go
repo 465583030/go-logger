@@ -96,6 +96,17 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
+func TestDiagnosticsAgentEnableDisableEvent(t *testing.T) {
+	assert := assert.New(t)
+
+	da := NewDiagnosticsAgent(0)
+	da.EnableEvent(1)
+	assert.True(da.CheckVerbosity(1))
+
+	da.DisableEvent(1)
+	assert.False(da.CheckVerbosity(1))
+}
+
 func TestDiagnosticAgentVerbosity(t *testing.T) {
 	assert := assert.New(t)
 
