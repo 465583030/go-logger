@@ -44,3 +44,11 @@ func TestEventFlagAll(t *testing.T) {
 	assert.True(EventFlagAll(masterFlag, checkValidFlag))
 	assert.False(EventFlagAll(masterFlag, checkInvalidFlag))
 }
+
+func TestCreateEventFlagConstant(t *testing.T) {
+	assert := assert.New(t)
+
+	assert.Equal(EventFlagMax*2, CreateEventFlagConstant(0))
+	assert.Equal(EventFlagMax*4, CreateEventFlagConstant(1))
+	assert.Equal(EventFlagMax*8, CreateEventFlagConstant(2))
+}
