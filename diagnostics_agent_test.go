@@ -102,9 +102,12 @@ func TestDiagnosticsAgentEnableDisableEvent(t *testing.T) {
 	da := NewDiagnosticsAgent(0)
 	da.EnableEvent(1)
 	assert.True(da.CheckVerbosity(1))
+	da.EnableEvent(2)
+	assert.True(da.CheckVerbosity(2))
 
 	da.DisableEvent(1)
 	assert.False(da.CheckVerbosity(1))
+	assert.True(da.CheckVerbosity(2))
 }
 
 func TestDiagnosticAgentVerbosity(t *testing.T) {
