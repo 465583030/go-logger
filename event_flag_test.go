@@ -52,3 +52,15 @@ func TestCreateEventFlagConstant(t *testing.T) {
 	assert.Equal(EventFlagMax*4, CreateEventFlagConstant(1))
 	assert.Equal(EventFlagMax*8, CreateEventFlagConstant(2))
 }
+
+func TestEventFlagZero(t *testing.T) {
+	assert := assert.New(t)
+
+	one := uint64(1 << 0)
+	two := uint64(1 << 1)
+	four := uint64(1 << 2)
+
+	flagSet := EventFlagCombine(one, two, four)
+	flagSet = EventFlagZero(flagSet, four)
+	assert.False(EventFlagAny(flagSet, four))
+}
