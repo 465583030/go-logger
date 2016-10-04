@@ -160,3 +160,19 @@ func (efs EventFlagSet) IsEnabled(flagValue EventFlag) bool {
 	}
 	return false
 }
+
+func (efs EventFlagSet) String() string {
+	if efs.all {
+		return string(EventAll)
+	}
+	if efs.none {
+		return string(EventNone)
+	}
+	var flags []string
+	for key, enabled := range efs.flags {
+		if enabled {
+			flags = append(flags, string(key))
+		}
+	}
+	return strings.Join(flags, ", ")
+}
