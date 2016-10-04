@@ -42,6 +42,21 @@ const (
 	EnvironmentVariableLogEvents = "LOG_EVENTS"
 )
 
+var (
+	// AllEventFlags is an array of all the event flags.
+	AllEventFlags = []EventFlag{
+		EventFatalError,
+		EventError,
+		EventWarning,
+		EventDebug,
+		EventInfo,
+		EventRequest,
+		EventRequestComplete,
+		EventResponse,
+		EventUserError,
+	}
+)
+
 // EventFlag is a flag to enable or disable triggering handlers for an event.
 type EventFlag string
 
