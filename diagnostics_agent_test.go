@@ -312,3 +312,16 @@ func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
 	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)))
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
 }
+
+func BenchmarkDiagnosticsAgentIsEnabled(b *testing.B) {
+	for iter := 0; iter < b.N; iter++ {
+		for subIter := 0; subIter < 50; subIter++ {
+			da := NewDiagnosticsAgent(EventFlagCombine(EventFatalError, EventError, EventRequest, EventInfo))
+			da.CheckVerbosity(EventFatalError)
+			da.CheckVerbosity(EventUserError)
+			da.CheckVerbosity(EventDebug)
+			da.CheckVerbosity(EventInfo)
+			da.CheckVerbosity(EventRequest)
+		}
+	}
+}
