@@ -241,7 +241,7 @@ func TestDiagnosticsAgentEventf(t *testing.T) {
 		defer wg.Done()
 	})
 
-	da.Eventf(EventInfo, "Informational", ColorWhite, "%s World", "Hello")
+	da.Eventf(EventInfo, ColorWhite, "%s World", "Hello")
 	wg.Wait()
 
 	assert.NotZero(buffer.Len())
@@ -263,7 +263,7 @@ func TestDiagnosticsAgentErrorf(t *testing.T) {
 		defer wg.Done()
 	})
 
-	da.ErrorEventf(EventError, "Info Error", ColorWhite, "%s World", "Hello")
+	da.ErrorEventf(EventError, ColorWhite, "%s World", "Hello")
 	wg.Wait()
 
 	assert.Zero(stdout.Len())
@@ -301,7 +301,7 @@ func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
 	da.writer.SetUseAnsiColors(false)
 
 	ts := TimeInstance(time.Date(2016, 01, 02, 03, 04, 05, 06, time.UTC))
-	err := da.writeEventMessageWithOutput(da.writer.PrintfWithTimeSource, ts, "test", ColorWhite, "%s World", "Hello")
+	err := da.writeEventMessageWithOutput(da.writer.PrintfWithTimeSource, ts, EventFlag("test"), ColorWhite, "%s World", "Hello")
 	assert.Nil(err)
 	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)))
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
