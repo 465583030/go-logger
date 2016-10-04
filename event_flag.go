@@ -101,7 +101,14 @@ func NewEventFlagSetFromEnvironment() *EventFlagSet {
 		flags := strings.Split(envEventsFlag, ",")
 		var events []EventFlag
 		for _, flag := range flags {
-			events = append(events, EventFlag(strings.Trim(strings.ToUpper(flag), " \t\n")))
+			parsedFlag := EventFlag(strings.Trim(strings.ToUpper(flag), " \t\n"))
+			if CaseInsensitiveEquals(string(parsedFlag), string(EventAll)) {
+				return NewEventFlagSetAll()
+			}
+			if CaseInsensitiveEquals(string(parsedFlag), string(EventNone)) {
+				return NewEventFlagSetNone()
+			}
+			events = append(events, parsedFlag)
 		}
 		return NewEventFlagSetWithEvents(events...)
 	}
