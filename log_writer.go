@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -197,9 +196,7 @@ func (wr *LogWriter) FprintfWithTimeSource(ts TimeSource, w io.Writer, format st
 	}
 
 	buf.WriteString(message)
-	if !strings.HasSuffix(message, string(RuneNewline)) {
-		buf.WriteRune(RuneNewline)
-	}
+	buf.WriteRune(RuneNewline)
 	buf.WriteTo(w)
 }
 
