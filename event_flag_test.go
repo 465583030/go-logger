@@ -6,61 +6,33 @@ import (
 	"github.com/blendlabs/go-assert"
 )
 
-func TestEventFlagCombine(t *testing.T) {
+func TestEventFlagSetEnable(t *testing.T) {
 	assert := assert.New(t)
 
-	three := EventFlagCombine(1, 2)
-	assert.Equal(3, three)
+	set := NewEventFlagSet()
+	set.Enable("TEST")
+	assert.True(set.IsEnabled("TEST"))
+	assert.False(set.IsEnabled("NOT_TEST"))
 }
 
-func TestEventFlagAny(t *testing.T) {
+func TestEventFlagSetDisable(t *testing.T) {
 	assert := assert.New(t)
 
-	one := uint64(1 << 0)
-	two := uint64(1 << 1)
-	four := uint64(1 << 2)
-	eight := uint64(1 << 3)
-	sixteen := uint64(1 << 4)
-	invalid := uint64(1 << 5)
-
-	masterFlag := EventFlagCombine(one, two, four, eight)
-	checkFlag := EventFlagCombine(one, sixteen)
-	assert.True(EventFlagAny(masterFlag, checkFlag))
-	assert.False(EventFlagAny(masterFlag, invalid))
+	set := NewEventFlagSet()
+	set.Enable("TEST")
+	assert.True(set.IsEnabled("TEST"))
+	set.Disable("TEST")
+	assert.False(set.IsEnabled("TEST"))
 }
 
-func TestEventFlagAll(t *testing.T) {
+func TestEventFlagSetEnableAll(t *testing.T) {
 	assert := assert.New(t)
 
-	one := uint64(1 << 0)
-	two := uint64(1 << 1)
-	four := uint64(1 << 2)
-	eight := uint64(1 << 3)
-	sixteen := uint64(1 << 4)
-
-	masterFlag := EventFlagCombine(one, two, four, eight)
-	checkValidFlag := EventFlagCombine(one, two)
-	checkInvalidFlag := EventFlagCombine(one, sixteen)
-	assert.True(EventFlagAll(masterFlag, checkValidFlag))
-	assert.False(EventFlagAll(masterFlag, checkInvalidFlag))
-}
-
-func TestCreateEventFlagConstant(t *testing.T) {
-	assert := assert.New(t)
-
-	assert.Equal(EventFlagMax*2, CreateEventFlagConstant(0))
-	assert.Equal(EventFlagMax*4, CreateEventFlagConstant(1))
-	assert.Equal(EventFlagMax*8, CreateEventFlagConstant(2))
-}
-
-func TestEventFlagZero(t *testing.T) {
-	assert := assert.New(t)
-
-	one := uint64(1 << 0)
-	two := uint64(1 << 1)
-	four := uint64(1 << 2)
-
-	flagSet := EventFlagCombine(one, two, four)
-	flagSet = EventFlagZero(flagSet, four)
-	assert.False(EventFlagAny(flagSet, four))
+	set := NewEventFlagSet()
+	set.EnableAll()
+	assert.True(set.IsEnabled("TEST"))
+	assert.True(set.IsEnabled("NOT_TEST"))
+	assert.True(set.IsEnabled("NOT_TEST"))
+	set.Disable("TEST")
+	assert.True(set.IsEnabled("TEST"))
 }

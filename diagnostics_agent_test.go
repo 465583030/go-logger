@@ -29,11 +29,12 @@ func TestNewDiagnosticsAgent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da)
-	assert.Equal(EventAll, da.Verbosity())
+	assert.NotNil(da.Events())
+	assert.True(da.Events().IsAllEnabled())
 	assert.NotNil(da.eventListeners)
 	assert.NotNil(da.eventQueue)
 }
@@ -56,7 +57,7 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	da := NewDiagnosticsAgentFromEnvironment()
 	defer da.Close()
 
-	assert.Equal(EventAll, da.Verbosity())
+	assert.NotNil(da.Events())
 	assert.True(da.Writer().UseAnsiColors())
 	assert.True(da.Writer().ShowTimestamp())
 	assert.True(da.Writer().ShowLabel())
@@ -83,11 +84,11 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	da := NewDiagnosticsAgentFromEnvironment()
 	defer da.Close()
 
-	assert.True(da.CheckVerbosity(EventError))
-	assert.True(da.CheckVerbosity(EventRequestComplete))
-	assert.True(da.CheckVerbosity(EventInfo))
-	assert.False(da.CheckVerbosity(EventWarning))
-	assert.False(da.CheckVerbosity(EventFatalError))
+	assert.True(da.IsEnabled(EventError))
+	assert.True(da.IsEnabled(EventRequest))
+	assert.True(da.IsEnabled(EventInfo))
+	assert.False(da.IsEnabled(EventWarning))
+	assert.False(da.IsEnabled(EventFatalError))
 	assert.True(da.Writer().UseAnsiColors())
 	assert.True(da.Writer().ShowTimestamp())
 	assert.True(da.Writer().ShowLabel())
@@ -99,56 +100,49 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 func TestDiagnosticsAgentEnableDisableEvent(t *testing.T) {
 	assert := assert.New(t)
 
-	da := NewDiagnosticsAgent(0)
-	da.EnableEvent(1)
-	assert.True(da.CheckVerbosity(1))
-	da.EnableEvent(2)
-	assert.True(da.CheckVerbosity(2))
+	da := NewDiagnosticsAgent(NewEventFlagSet())
+	da.EnableEvent("TEST")
+	assert.True(da.IsEnabled("TEST"))
+	da.EnableEvent("FOO")
+	assert.True(da.IsEnabled("FOO"))
 
-	da.DisableEvent(1)
-	assert.False(da.CheckVerbosity(1))
-	assert.True(da.CheckVerbosity(2))
+	da.DisableEvent("TEST")
+	assert.False(da.IsEnabled("TEST"))
+	assert.True(da.IsEnabled("FOO"))
 }
 
 func TestDiagnosticAgentVerbosity(t *testing.T) {
 	assert := assert.New(t)
 
-	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
-	defer da.Close()
-
-	assert.Equal(EventAll, da.Verbosity())
-	da.SetVerbosity(EventInfo)
-	assert.Equal(EventInfo, da.Verbosity())
-	assert.True(da.CheckVerbosity(EventInfo))
-	assert.False(da.CheckVerbosity(EventRequest))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll())
+	da.SetVerbosity(NewEventFlagSetWithEvents(EventInfo))
+	assert.True(da.IsEnabled(EventInfo))
+	assert.False(da.IsEnabled(EventRequest))
 }
 
 func TestDiagnosticsAgentAddEventListener(t *testing.T) {
 	assert := assert.New(t)
 
-	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
-	defer da.Close()
+	da := NewDiagnosticsAgent(NewEventFlagSetAll())
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {})
-	assert.True(da.CheckVerbosity(EventError))
-	assert.True(da.CheckHasHandler(EventError))
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
+	assert.True(da.IsEnabled(EventError))
+	assert.True(da.HasHandler(EventError))
 }
 
 func TestDiagnosticsAgentOnEvent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 		assert.Equal(EventError, eventFlag)
 		assert.NotEmpty(state)
@@ -156,8 +150,8 @@ func TestDiagnosticsAgentOnEvent(t *testing.T) {
 		assert.Equal("Hello", state[0])
 		assert.Equal("World", state[1])
 	})
-	assert.True(da.CheckVerbosity(EventError))
-	assert.True(da.CheckHasHandler(EventError))
+	assert.True(da.IsEnabled(EventError))
+	assert.True(da.HasHandler(EventError))
 
 	da.OnEvent(EventError, "Hello", "World")
 	wg.Wait()
@@ -167,14 +161,14 @@ func TestDiagnosticsAgentOnEventMultipleListeners(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 		assert.Equal(EventError, eventFlag)
 		assert.NotEmpty(state)
@@ -182,7 +176,7 @@ func TestDiagnosticsAgentOnEventMultipleListeners(t *testing.T) {
 		assert.Equal("Hello", state[0])
 		assert.Equal("World", state[1])
 	})
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 		assert.Equal(EventError, eventFlag)
 		assert.NotEmpty(state)
@@ -190,8 +184,8 @@ func TestDiagnosticsAgentOnEventMultipleListeners(t *testing.T) {
 		assert.Equal("Hello", state[0])
 		assert.Equal("World", state[1])
 	})
-	assert.True(da.CheckVerbosity(EventError))
-	assert.True(da.CheckHasHandler(EventError))
+	assert.True(da.IsEnabled(EventError))
+	assert.True(da.HasHandler(EventError))
 
 	da.OnEvent(EventError, "Hello", "World")
 	wg.Wait()
@@ -201,17 +195,17 @@ func TestDiagnosticsAgentOnEventUnhandled(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		assert.FailNow("The Error Handler shouldn't have fired")
 	})
-	assert.True(da.CheckVerbosity(EventError))
-	assert.True(da.CheckVerbosity(EventFatalError))
-	assert.True(da.CheckHasHandler(EventError))
-	assert.False(da.CheckHasHandler(EventFatalError))
+	assert.True(da.IsEnabled(EventError))
+	assert.True(da.IsEnabled(EventFatalError))
+	assert.True(da.HasHandler(EventError))
+	assert.False(da.HasHandler(EventFatalError))
 
 	da.OnEvent(EventFatalError, "Hello", "World")
 }
@@ -220,15 +214,15 @@ func TestDiagnosticsAgentOnEventUnflagged(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventFlagCombine(EventInfo, EventRequestComplete), NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventInfo, EventRequestComplete), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		assert.FailNow("The Error Handler shouldn't have fired")
 	})
-	assert.False(da.CheckVerbosity(EventError))
-	assert.True(da.CheckHasHandler(EventError))
+	assert.False(da.IsEnabled(EventError))
+	assert.True(da.HasHandler(EventError))
 
 	da.OnEvent(EventError, "Hello", "World")
 }
@@ -237,13 +231,13 @@ func TestDiagnosticsAgentEventf(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 	})
 
@@ -259,13 +253,13 @@ func TestDiagnosticsAgentErrorf(t *testing.T) {
 
 	stdout := bytes.NewBuffer([]byte{})
 	stderr := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(stdout, stderr))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(stdout, stderr))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag uint64, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 	})
 
@@ -281,12 +275,12 @@ func TestDiagnosticsAgentFireEvent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 	da.writer.SetUseAnsiColors(false)
 
 	ts := TimeInstance(time.Date(2016, 01, 02, 03, 04, 05, 06, time.UTC))
-	da.AddEventListener(EventInfo, func(wr Logger, ts TimeSource, e uint64, state ...interface{}) {
+	da.AddEventListener(EventInfo, func(wr Logger, ts TimeSource, e EventFlag, state ...interface{}) {
 		wr.WriteWithTimeSource(ts, []byte(fmt.Sprintf("Hello World")))
 	})
 
@@ -301,7 +295,7 @@ func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(EventAll, NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	da.writer.SetUseAnsiColors(false)

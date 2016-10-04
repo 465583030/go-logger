@@ -71,11 +71,11 @@ func stateAsAnsiColorCode(state interface{}) (AnsiColorCode, error) {
 	return ColorReset, errTypeConversion
 }
 
-func stateAsEventFlag(state interface{}) (uint64, error) {
-	if typed, isTyped := state.(uint64); isTyped {
+func stateAsEventFlag(state interface{}) (EventFlag, error) {
+	if typed, isTyped := state.(EventFlag); isTyped {
 		return typed, nil
 	}
-	return 0, errTypeConversion
+	return EventNone, errTypeConversion
 }
 
 func stateAsTime(state interface{}) (time.Time, error) {
@@ -113,7 +113,7 @@ func stateAsBytes(state interface{}) ([]byte, error) {
 	return nil, errTypeConversion
 }
 
-func envFlagSet(flagName string, defaultValue bool) bool {
+func envFlagIsSet(flagName string, defaultValue bool) bool {
 	flagValue := os.Getenv(flagName)
 	if len(flagValue) > 0 {
 		if strings.ToUpper(flagValue) == "TRUE" || flagValue == "1" {
