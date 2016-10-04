@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"os"
 	"testing"
 
 	"github.com/blendlabs/go-assert"
@@ -35,4 +36,20 @@ func TestEventFlagSetEnableAll(t *testing.T) {
 	assert.True(set.IsEnabled("NOT_TEST"))
 	set.Disable("TEST")
 	assert.True(set.IsEnabled("TEST"))
+}
+
+func TestEventFlagSetFromEnvironment(t *testing.T) {
+	assert := assert.New(t)
+
+	oldLogVerbosity := os.Getenv(EnvironmentVariableLogEvents)
+	defer func() {
+		os.Setenv(EnvironmentVariableLogEvents, oldLogVerbosity)
+	}()
+	os.Setenv(EnvironmentVariableLogEvents, "error,info,request")
+
+	set := NewEventFlagSetFromEnvironment()
+	assert.True(set.IsEnabled(EventError))
+	assert.True(set.IsEnabled(EventInfo))
+	assert.True(set.IsEnabled(EventRequest))
+	assert.False(set.IsEnabled(EventFatalError))
 }

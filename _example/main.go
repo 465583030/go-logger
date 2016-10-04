@@ -53,7 +53,7 @@ func postHandler(res http.ResponseWriter, req *http.Request) {
 	defer pool.Put(b)
 	b.ReadFrom(req.Body)
 	res.Write([]byte(fmt.Sprintf(`{"status":"ok!","received_bytes":%d}`, b.Len())))
-	logger.Diagnostics().OnEvent(logger.EventPostBody, b.Bytes())
+	logger.Diagnostics().OnEvent(logger.EventRequestPostBody, b.Bytes())
 }
 
 func port() string {
@@ -76,11 +76,11 @@ func main() {
 		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
 			logger.WriteRequestComplete(writer, ts, req, statusCode, contentLengthBytes, elapsed)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventPostBody,
+	logger.Diagnostics().AddEventListener(logger.EventRequestPostBody,
 		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimeSource, body []byte) {
 			logger.WriteRequestBody(writer, ts, body)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, e uint64, args ...interface{}) {
+	logger.Diagnostics().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, e logger.EventFlag, args ...interface{}) {
 		//ping an external service?
 		//log something to the db?
 		//this action will be handled by a separate go-routine
@@ -92,6 +92,6 @@ func main() {
 	http.HandleFunc("/warning", logged(warningHandler))
 	http.HandleFunc("/post", logged(postHandler))
 	logger.Diagnostics().Infof("Listening on :%s", port())
-	logger.Diagnostics().Infof("Diagnostics %s", logger.ExpandEventNames(logger.Diagnostics().Verbosity()))
+	logger.Diagnostics().Infof("Diagnostics %s", logger.Diagnostics().Events().String())
 	log.Fatal(http.ListenAndServe(":"+port(), nil))
 }
