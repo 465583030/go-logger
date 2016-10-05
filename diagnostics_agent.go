@@ -24,7 +24,7 @@ var (
 
 var (
 	// DefaultDiagnosticsAgentVerbosity is the default verbosity for a diagnostics agent inited from the environment.
-	DefaultDiagnosticsAgentVerbosity = NewEventFlagSetWithEvents(EventFatalError, EventError, EventRequestComplete, EventInfo)
+	DefaultDiagnosticsAgentVerbosity = NewEventFlagSetWithEvents(EventFatalError, EventError, EventWebRequest, EventInfo)
 )
 
 // Diagnostics returnes a default DiagnosticsAgent singleton.

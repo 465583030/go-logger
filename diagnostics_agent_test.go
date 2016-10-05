@@ -73,7 +73,7 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	defer func() {
 		os.Setenv(EnvironmentVariableLogEvents, oldLogVerbosity)
 	}()
-	os.Setenv(EnvironmentVariableLogEvents, "error,info,request")
+	os.Setenv(EnvironmentVariableLogEvents, "error,info,web.request")
 
 	oldLogLabel := os.Getenv(EnvironmentVariableLogLabel)
 	defer func() {
@@ -85,7 +85,7 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	defer da.Close()
 
 	assert.True(da.IsEnabled(EventError))
-	assert.True(da.IsEnabled(EventRequest))
+	assert.True(da.IsEnabled(EventWebRequest))
 	assert.True(da.IsEnabled(EventInfo))
 	assert.False(da.IsEnabled(EventWarning))
 	assert.False(da.IsEnabled(EventFatalError))
@@ -117,7 +117,7 @@ func TestDiagnosticAgentVerbosity(t *testing.T) {
 	da := NewDiagnosticsAgent(NewEventFlagSetAll())
 	da.SetVerbosity(NewEventFlagSetWithEvents(EventInfo))
 	assert.True(da.IsEnabled(EventInfo))
-	assert.False(da.IsEnabled(EventRequest))
+	assert.False(da.IsEnabled(EventWebRequest))
 }
 
 func TestDiagnosticsAgentAddEventListener(t *testing.T) {
@@ -214,7 +214,7 @@ func TestDiagnosticsAgentOnEventUnflagged(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventInfo, EventRequestComplete), NewLogWriter(buffer))
+	da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventInfo, EventWebRequest), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
@@ -310,12 +310,12 @@ func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
 func BenchmarkDiagnosticsAgentIsEnabled(b *testing.B) {
 	for iter := 0; iter < b.N; iter++ {
 		for subIter := 0; subIter < 50; subIter++ {
-			da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventFatalError, EventError, EventRequest, EventInfo))
+			da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventFatalError, EventError, EventWebRequest, EventInfo))
 			da.IsEnabled(EventFatalError)
-			da.IsEnabled(EventUserError)
+			da.IsEnabled(EventWebUserError)
 			da.IsEnabled(EventDebug)
 			da.IsEnabled(EventInfo)
-			da.IsEnabled(EventRequest)
+			da.IsEnabled(EventWebRequest)
 		}
 	}
 }

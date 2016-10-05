@@ -45,12 +45,12 @@ func TestEventFlagSetFromEnvironment(t *testing.T) {
 	defer func() {
 		os.Setenv(EnvironmentVariableLogEvents, oldLogVerbosity)
 	}()
-	os.Setenv(EnvironmentVariableLogEvents, "error,info,request")
+	os.Setenv(EnvironmentVariableLogEvents, "error,info,web.request")
 
 	set := NewEventFlagSetFromEnvironment()
 	assert.True(set.IsEnabled(EventError))
 	assert.True(set.IsEnabled(EventInfo))
-	assert.True(set.IsEnabled(EventRequest))
+	assert.True(set.IsEnabled(EventWebRequest))
 	assert.False(set.IsEnabled(EventFatalError))
 }
 
