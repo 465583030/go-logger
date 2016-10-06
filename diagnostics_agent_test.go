@@ -128,7 +128,7 @@ func TestDiagnosticsAgentAddEventListener(t *testing.T) {
 	assert.NotNil(da.eventListeners)
 	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
 	assert.True(da.IsEnabled(EventError))
-	assert.True(da.HasHandler(EventError))
+	assert.True(da.HasListener(EventError))
 }
 
 func TestDiagnosticsAgentOnEvent(t *testing.T) {
@@ -151,7 +151,7 @@ func TestDiagnosticsAgentOnEvent(t *testing.T) {
 		assert.Equal("World", state[1])
 	})
 	assert.True(da.IsEnabled(EventError))
-	assert.True(da.HasHandler(EventError))
+	assert.True(da.HasListener(EventError))
 
 	da.OnEvent(EventError, "Hello", "World")
 	wg.Wait()
@@ -185,7 +185,7 @@ func TestDiagnosticsAgentOnEventMultipleListeners(t *testing.T) {
 		assert.Equal("World", state[1])
 	})
 	assert.True(da.IsEnabled(EventError))
-	assert.True(da.HasHandler(EventError))
+	assert.True(da.HasListener(EventError))
 
 	da.OnEvent(EventError, "Hello", "World")
 	wg.Wait()
@@ -204,8 +204,8 @@ func TestDiagnosticsAgentOnEventUnhandled(t *testing.T) {
 	})
 	assert.True(da.IsEnabled(EventError))
 	assert.True(da.IsEnabled(EventFatalError))
-	assert.True(da.HasHandler(EventError))
-	assert.False(da.HasHandler(EventFatalError))
+	assert.True(da.HasListener(EventError))
+	assert.False(da.HasListener(EventFatalError))
 
 	da.OnEvent(EventFatalError, "Hello", "World")
 }
@@ -222,7 +222,7 @@ func TestDiagnosticsAgentOnEventUnflagged(t *testing.T) {
 		assert.FailNow("The Error Handler shouldn't have fired")
 	})
 	assert.False(da.IsEnabled(EventError))
-	assert.True(da.HasHandler(EventError))
+	assert.True(da.HasListener(EventError))
 
 	da.OnEvent(EventError, "Hello", "World")
 }
@@ -305,6 +305,18 @@ func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
 	assert.Nil(err)
 	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)))
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
+}
+
+func TestDiagnosticsAgentRemoveListeners(t *testing.T) {
+	assert := assert.New(t)
+
+	da := NewDiagnosticsAgent(NewEventFlagSetAll())
+	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
+	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
+	da.RemoveListeners(EventError)
+
+	assert.False(da.HasListener(EventError))
+
 }
 
 func BenchmarkDiagnosticsAgentIsEnabled(b *testing.B) {
