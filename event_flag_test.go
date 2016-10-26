@@ -83,3 +83,13 @@ func TestEventFlagSetFromEnvironmentNone(t *testing.T) {
 	assert.True(set.IsNoneEnabled())
 	assert.False(set.IsEnabled(EventError))
 }
+
+func TestEventFlagNoneEnableEvents(t *testing.T) {
+	assert := assert.New(t)
+
+	flags := NewEventFlagSetNone()
+	assert.False(flags.IsEnabled("test_flag"))
+
+	flags.Enable("test_flag")
+	assert.True(flags.IsEnabled("test_flag"))
+}
