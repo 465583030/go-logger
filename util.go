@@ -10,6 +10,15 @@ import (
 	"time"
 )
 
+// OpenOrCreateFile opens or creates a file.
+func OpenOrCreateFile(filePath string) (*os.File, error) {
+	f, err := os.Open(filePath)
+	if os.IsNotExist(err) {
+		return os.Create(filePath)
+	}
+	return f, nil
+}
+
 // FormatFileSize returns a string representation of a file size in bytes.
 func FormatFileSize(sizeBytes int) string {
 	if sizeBytes >= 1<<30 {

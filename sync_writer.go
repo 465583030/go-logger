@@ -28,7 +28,7 @@ func NewStdErrMultiWriterFromEnvironment() io.WriteCloser {
 
 // NewMultiWriterFromFileWithPrimary returns a multiwriter with up to (2) output writers, the primary and a file secondary.
 func NewMultiWriterFromFileWithPrimary(primary io.Writer, filePath string) io.WriteCloser {
-	secondary, err := os.Open(filePath)
+	secondary, err := OpenOrCreateFile(filePath)
 	if err == nil {
 		return NewMultiWriter(NewSyncWriter(primary), NewSyncWriteCloser(secondary))
 	}
