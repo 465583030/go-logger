@@ -52,7 +52,9 @@ func (mw MultiWriter) Write(buffer []byte) (int, error) {
 	var err error
 
 	for x := 0; x < len(mw.writers); x++ {
-		written, err = mw.writers[x].Write(buffer)
+		if mw.writers[x] != nil {
+			written, err = mw.writers[x].Write(buffer)
+		}
 	}
 	return written, err
 }
@@ -76,6 +78,7 @@ func (mw MultiWriter) Close() error {
 func NewSyncWriteCloser(innerWriter io.WriteCloser) *SyncWriteCloser {
 	return &SyncWriteCloser{
 		innerWriter: innerWriter,
+		syncRoot:    &sync.Mutex{},
 	}
 }
 
@@ -100,9 +103,6 @@ func (sw *SyncWriteCloser) Close() error {
 
 // NewSyncWriter returns a new interlocked writer.
 func NewSyncWriter(innerWriter io.Writer) io.WriteCloser {
-	if innerWriter == nil {
-		return nil
-	}
 	return &SyncWriter{
 		innerWriter: innerWriter,
 		syncRoot:    &sync.Mutex{},
