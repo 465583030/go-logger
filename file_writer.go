@@ -163,9 +163,13 @@ func (fw *FileWriter) compressFile(inFilePath, outFilePath string) error {
 	defer outFile.Close()
 
 	gzw := gzip.NewWriter(outFile)
+	defer gzw.Close()
 
 	_, err = io.Copy(gzw, inFile)
-	return err
+	if err != nil {
+		return err
+	}
+	return gzw.Flush()
 }
 
 func (fw *FileWriter) extractArchivedFileIndex(filePath string) (int64, error) {

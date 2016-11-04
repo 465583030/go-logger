@@ -17,9 +17,10 @@ func NewStdOutMultiWriterFromEnvironment() io.WriteCloser {
 			EnvironmentVariableLogOutMaxSizeBytes,
 			EnvironmentVariableLogOutMaxArchive,
 		)
-		if err == nil {
-			return NewMultiWriter(primary, secondary)
+		if err != nil {
+			panic(err)
 		}
+		return NewMultiWriter(primary, secondary)
 	}
 	return NewSyncWriter(primary)
 }
@@ -35,9 +36,10 @@ func NewStdErrMultiWriterFromEnvironment() io.WriteCloser {
 			EnvironmentVariableLogErrMaxSizeBytes,
 			EnvironmentVariableLogErrMaxArchive,
 		)
-		if err == nil {
-			return NewMultiWriter(primary, secondary)
+		if err != nil {
+			panic(err)
 		}
+		return NewMultiWriter(primary, secondary)
 	}
 	return NewSyncWriter(primary)
 }

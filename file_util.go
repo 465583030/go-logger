@@ -15,7 +15,7 @@ type fileUtil struct{}
 
 // CreateOrOpen creates or opens a file.
 func (fu fileUtil) CreateOrOpen(filePath string) (*os.File, error) {
-	f, err := os.Open(filePath)
+	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_WRONLY, os.ModeAppend)
 	if os.IsNotExist(err) {
 		return os.Create(filePath)
 	}
