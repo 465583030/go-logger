@@ -183,26 +183,6 @@ func (fw *FileWriter) getMaxArchivedFileIndex(paths []string) (int64, error) {
 	return max, err
 }
 
-// cullArchivedFiles deletes any files that are > the maximum archive count.
-// example would be max=3 [file.1, file.2, file.3, file.4] = > [file.1, file.2, file.3]
-func (fw *FileWriter) cullArchivedFiles(paths []string) error {
-	var index int64
-	var err error
-	for _, path := range paths {
-		index, err = fw.extractArchivedFileIndex(path)
-		if err != nil {
-			return err
-		}
-		if index >= int64(fw.fileMaxArchiveCount) {
-			err = os.Remove(path)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // shiftArchivedFiles shifts the archived files by one index
 // an example would be [file.1, file.2, file.3] => [file.2, file.3, file.4] etc.
 func (fw *FileWriter) shiftArchivedFiles(paths []string) error {
@@ -224,11 +204,21 @@ func (fw *FileWriter) shiftArchivedFiles(paths []string) error {
 			tempPath = fw.makeTempArchiveFilePath(fw.filePath, index+1)
 			finalPath = fw.makeArchiveFilePath(fw.filePath, index+1)
 		}
-		err = os.Rename(path, tempPath)
+
+		if fw.fileMaxArchiveCount > 0 {
+			if index+1 <= fw.fileMaxArchiveCount {
+				err = os.Rename(path, tempPath)
+				intermediatePaths[tempPath] = finalPath
+			} else {
+				err = os.Remove(path)
+			}
+		} else {
+			err = os.Rename(path, tempPath)
+			intermediatePaths[tempPath] = finalPath
+		}
 		if err != nil {
 			return err
 		}
-		intermediatePaths[tempPath] = finalPath
 	}
 
 	for from, to := range intermediatePaths {
@@ -252,13 +242,6 @@ func (fw *FileWriter) rotateFile() error {
 	err = fw.shiftArchivedFiles(paths)
 	if err != nil {
 		return err
-	}
-
-	if fw.fileMaxArchiveCount > 0 {
-		err = fw.cullArchivedFiles(paths)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = fw.file.Close()

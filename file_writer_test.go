@@ -191,6 +191,49 @@ func TestFileWriterShiftCompressedArchivedFiles(t *testing.T) {
 	assert.Equal(td+id+".5.gz", results[3])
 }
 
+func TestFileWriterShiftCompressedArchivedFilesWithMax(t *testing.T) {
+	assert := assert.New(t)
+	var err error
+
+	td := os.TempDir()
+	id := UUIDv4()
+
+	f1 := td + id + ".1.gz"
+	f2 := td + id + ".2.gz"
+	f3 := td + id + ".3.gz"
+	f4 := td + id + ".4.gz"
+
+	err = File.CreateAndClose(f1)
+	assert.Nil(err)
+	err = File.CreateAndClose(f2)
+	assert.Nil(err)
+	err = File.CreateAndClose(f3)
+	assert.Nil(err)
+	err = File.CreateAndClose(f4)
+	assert.Nil(err)
+
+	defer File.RemoveMany(f1, f2, f3, f4)
+
+	regex, err := createIsCompressedArchiveFileRegexp(td + id)
+	assert.Nil(err)
+
+	fr := &FileWriter{
+		filePath:                    td + id,
+		shouldCompressArchivedFiles: true,
+		isArchiveFileRegexp:         regex,
+		fileMaxArchiveCount:         3,
+	}
+
+	err = fr.shiftArchivedFiles([]string{f1, f2, f3, f4})
+	assert.Nil(err)
+
+	results, err := File.List(td, regex)
+	assert.Nil(err)
+	assert.Len(results, 2, fmt.Sprintf("%#v", results))
+	assert.Equal(td+id+".2.gz", results[0])
+	assert.Equal(td+id+".3.gz", results[1])
+}
+
 func TestFileWriterExtractArchivedFileIndex(t *testing.T) {
 	assert := assert.New(t)
 
