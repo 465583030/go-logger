@@ -11,7 +11,15 @@ func NewStdOutMultiWriterFromEnvironment() io.WriteCloser {
 	primary := os.Stdout
 	filePath := os.Getenv(EnvironmentVariableLogOutFile)
 	if len(filePath) > 0 {
-		return NewMultiWriterFromFileWithPrimary(primary, filePath)
+		secondary, err := NewFileWriterFromEnvironmentVars(
+			EnvironmentVariableLogOutFile,
+			EnvironmentVariableLogOutArchiveCompress,
+			EnvironmentVariableLogOutMaxSizeBytes,
+			EnvironmentVariableLogOutMaxArchive,
+		)
+		if err == nil {
+			return NewMultiWriter(primary, secondary)
+		}
 	}
 	return NewSyncWriter(primary)
 }
@@ -21,16 +29,15 @@ func NewStdErrMultiWriterFromEnvironment() io.WriteCloser {
 	primary := os.Stderr
 	filePath := os.Getenv(EnvironmentVariableLogErrFile)
 	if len(filePath) > 0 {
-		return NewMultiWriterFromFileWithPrimary(primary, filePath)
-	}
-	return NewSyncWriter(primary)
-}
-
-// NewMultiWriterFromFileWithPrimary returns a multiwriter with up to (2) output writers, the primary and a file secondary.
-func NewMultiWriterFromFileWithPrimary(primary io.Writer, filePath string) io.WriteCloser {
-	secondary, err := File.CreateOrOpen(filePath)
-	if err == nil {
-		return NewMultiWriter(NewSyncWriter(primary), NewSyncWriteCloser(secondary))
+		secondary, err := NewFileWriterFromEnvironmentVars(
+			EnvironmentVariableLogErrFile,
+			EnvironmentVariableLogErrArchiveCompress,
+			EnvironmentVariableLogErrMaxSizeBytes,
+			EnvironmentVariableLogErrMaxArchive,
+		)
+		if err == nil {
+			return NewMultiWriter(primary, secondary)
+		}
 	}
 	return NewSyncWriter(primary)
 }

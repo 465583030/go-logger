@@ -12,18 +12,6 @@ import (
 	"time"
 )
 
-// FormatFileSize returns a string representation of a file size in bytes.
-func FormatFileSize(sizeBytes int) string {
-	if sizeBytes >= 1<<30 {
-		return strconv.Itoa(sizeBytes/(1<<30)) + "gB"
-	} else if sizeBytes >= 1<<20 {
-		return strconv.Itoa(sizeBytes/(1<<20)) + "mB"
-	} else if sizeBytes >= 1<<10 {
-		return strconv.Itoa(sizeBytes/(1<<10)) + "kB"
-	}
-	return strconv.Itoa(sizeBytes) + "B"
-}
-
 // GetIP gets the origin/client ip for a request.
 // X-FORWARDED-FOR is checked. If multiple IPs are included the first one is returned
 // X-REAL-IP is checked. If multiple IPs are included the first one is returned
@@ -122,6 +110,30 @@ func envFlagIsSet(flagName string, defaultValue bool) bool {
 			return true
 		}
 		return false
+	}
+	return defaultValue
+}
+
+func envFlagInt(flagName string, defaultValue int) int {
+	flagValue := os.Getenv(flagName)
+	if len(flagValue) > 0 {
+		value, err := strconv.Atoi(flagValue)
+		if err != nil {
+			return defaultValue
+		}
+		return value
+	}
+	return defaultValue
+}
+
+func envFlagInt64(flagName string, defaultValue int64) int64 {
+	flagValue := os.Getenv(flagName)
+	if len(flagValue) > 0 {
+		value, err := strconv.ParseInt(flagValue, 10, 64)
+		if err != nil {
+			return defaultValue
+		}
+		return value
 	}
 	return defaultValue
 }

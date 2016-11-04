@@ -39,6 +39,24 @@ const (
 	FileWriterDefaultMaxArchiveFiles int64 = 10
 )
 
+// NewFileWriterFromEnvironmentVars creates a new FileWriter from the given environment variable names.`
+func NewFileWriterFromEnvironmentVars(pathVar, shouldCompressVar, maxSizeVar, maxArchiveVar string) (*FileWriter, error) {
+	filePath := os.Getenv(pathVar)
+	if len(filePath) == 0 {
+		return nil, fmt.Errorf("Environment Variable `%s` required", pathVar)
+	}
+
+	shouldCompress := envFlagIsSet(shouldCompressVar, false)
+	maxFileSize := File.ParseSize(os.Getenv(maxSizeVar), FileWriterDefaultFileSize)
+	maxArchive := envFlagInt64(maxArchiveVar, FileWriterDefaultMaxArchiveFiles)
+	return NewFileWriter(filePath, shouldCompress, maxFileSize, maxArchive)
+}
+
+// NewFileWriterWithDefaults returns a new file writer with defaults.
+func NewFileWriterWithDefaults(filePath string) (*FileWriter, error) {
+	return NewFileWriter(filePath, true, FileWriterDefaultFileSize, FileWriterDefaultMaxArchiveFiles)
+}
+
 // NewFileWriter creates a new file writer.
 func NewFileWriter(filePath string, shouldCompressArchivedFiles bool, fileMaxSizeBytes, fileMaxArchiveCount int64) (*FileWriter, error) {
 	file, err := File.CreateOrOpen(filePath)
@@ -183,8 +201,6 @@ func (fw *FileWriter) getMaxArchivedFileIndex(paths []string) (int64, error) {
 	return max, err
 }
 
-// shiftArchivedFiles shifts the archived files by one index
-// an example would be [file.1, file.2, file.3] => [file.2, file.3, file.4] etc.
 func (fw *FileWriter) shiftArchivedFiles(paths []string) error {
 	var index int64
 	var err error

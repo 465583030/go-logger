@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
+	"strings"
 )
 
 // File contains helper functions for files.
@@ -56,4 +58,49 @@ func (fu fileUtil) List(path string, expr *regexp.Regexp) ([]string, error) {
 		return nil
 	})
 	return files, err
+}
+
+func (fu fileUtil) ParseSize(fileSizeValue string, defaultFileSize int64) int64 {
+	if len(fileSizeValue) == 0 {
+		return defaultFileSize
+	}
+
+	if len(fileSizeValue) < 2 {
+		val, err := strconv.Atoi(fileSizeValue)
+		if err != nil {
+			return defaultFileSize
+		}
+		return int64(val)
+	}
+
+	units := strings.ToLower(fileSizeValue[len(fileSizeValue)-2:])
+	value, err := strconv.ParseInt(fileSizeValue[:len(fileSizeValue)-2], 10, 64)
+	if err != nil {
+		return defaultFileSize
+	}
+	switch units {
+	case "gb":
+		return value * Gigabyte
+	case "mb":
+		return value * Megabyte
+	case "kb":
+		return value * Kilobyte
+	}
+	fullValue, err := strconv.ParseInt(fileSizeValue, 10, 64)
+	if err != nil {
+		return defaultFileSize
+	}
+	return fullValue
+}
+
+// FormatFileSize returns a string representation of a file size in bytes.
+func (fu fileUtil) FormatSize(sizeBytes int) string {
+	if sizeBytes >= 1<<30 {
+		return strconv.Itoa(sizeBytes/(1<<30)) + "gb"
+	} else if sizeBytes >= 1<<20 {
+		return strconv.Itoa(sizeBytes/(1<<20)) + "mb"
+	} else if sizeBytes >= 1<<10 {
+		return strconv.Itoa(sizeBytes/(1<<10)) + "kb"
+	}
+	return strconv.Itoa(sizeBytes)
 }

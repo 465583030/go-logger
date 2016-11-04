@@ -19,4 +19,19 @@ const (
 	EnvironmentVariableLogOutFile = "LOG_OUT_FILE"
 	// EnvironmentVariableLogErrFile is the variable for what file to write to for the error stream.
 	EnvironmentVariableLogErrFile = "LOG_ERR_FILE"
+
+	// EnvironmentVariableLogOutMaxSizeBytes
+	EnvironmentVariableLogOutArchiveCompress = "LOG_OUT_ARCHIVE_COMPRESS"
+	// EnvironmentVariableLogErrMaxSizeBytes
+	EnvironmentVariableLogErrArchiveCompress = "LOG_ERR_ARCHIVE_COMPRESS"
+
+	// EnvironmentVariableLogOutMaxSizeBytes
+	EnvironmentVariableLogOutMaxSizeBytes = "LOG_OUT_MAX_BYTES"
+	// EnvironmentVariableLogErrMaxSizeBytes
+	EnvironmentVariableLogErrMaxSizeBytes = "LOG_ERR_MAX_BYTES"
+
+	// EnvironmentVariableLogOutMaxArchive
+	EnvironmentVariableLogOutMaxArchive = "LOG_OUT_MAX_ARCHIVE"
+	// EnvironmentVariableLogErrMaxSizeBytes
+	EnvironmentVariableLogErrMaxArchive = "LOG_ERR_MAX_ARCHIVE"
 )
