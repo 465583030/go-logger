@@ -1,7 +1,9 @@
 package logger
 
 import (
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -9,15 +11,6 @@ import (
 	"strings"
 	"time"
 )
-
-// OpenOrCreateFile opens or creates a file.
-func OpenOrCreateFile(filePath string) (*os.File, error) {
-	f, err := os.Open(filePath)
-	if os.IsNotExist(err) {
-		return os.Create(filePath)
-	}
-	return f, nil
-}
 
 // FormatFileSize returns a string representation of a file size in bytes.
 func FormatFileSize(sizeBytes int) string {
@@ -220,4 +213,13 @@ func CaseInsensitiveEquals(a, b string) bool {
 	}
 
 	return true
+}
+
+// UUIDv4 returns a v4 uuid short string.
+func UUIDv4() string {
+	uuid := make([]byte, 16)
+	rand.Read(uuid)
+	uuid[6] = (uuid[6] & 0x0f) | 0x40 // set version 4
+	uuid[8] = (uuid[8] & 0x3f) | 0x80 // set variant 10
+	return fmt.Sprintf("%x", uuid[:])
 }

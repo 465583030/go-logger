@@ -19,7 +19,4 @@ const (
 	EnvironmentVariableLogOutFile = "LOG_OUT_FILE"
 	// EnvironmentVariableLogErrFile is the variable for what file to write to for the error stream.
 	EnvironmentVariableLogErrFile = "LOG_ERR_FILE"
-
-	// EnvironmentVariableLogRedirectOutput indicates if we need to redirect output from stdout or stderr to the log files.
-	EnvironmentVariableLogRedirectOutput = "LOG_REDIRECT"
 )

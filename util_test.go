@@ -4,20 +4,8 @@ import (
 	"net/http"
 	"testing"
 
-	"os"
-
 	assert "github.com/blendlabs/go-assert"
 )
-
-func TestOpenOrCreateFile(t *testing.T) {
-	assert := assert.New(t)
-
-	tempFilePath := os.TempDir() + "open_or_create_test.txt"
-	f, err := OpenOrCreateFile(tempFilePath)
-	assert.Nil(err)
-	assert.NotNil(f)
-	defer f.Close()
-}
 
 func TestGetIP(t *testing.T) {
 	assert := assert.New(t)
