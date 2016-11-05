@@ -16,10 +16,10 @@ var pool = logger.NewBufferPool(16)
 func logged(handler http.HandlerFunc) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		start := time.Now()
-		logger.Diagnostics().OnEvent(logger.EventRequest, req)
+		logger.Diagnostics().OnEvent(logger.EventWebRequestStart, req)
 		rw := logger.NewResponseWriter(res)
 		handler(rw, req)
-		logger.Diagnostics().OnEvent(logger.EventRequestComplete, req, rw.StatusCode(), rw.ContentLength(), time.Now().Sub(start))
+		logger.Diagnostics().OnEvent(logger.EventWebRequest, req, rw.StatusCode(), rw.ContentLength(), time.Now().Sub(start))
 	}
 }
 
@@ -53,7 +53,7 @@ func postHandler(res http.ResponseWriter, req *http.Request) {
 	defer pool.Put(b)
 	b.ReadFrom(req.Body)
 	res.Write([]byte(fmt.Sprintf(`{"status":"ok!","received_bytes":%d}`, b.Len())))
-	logger.Diagnostics().OnEvent(logger.EventRequestPostBody, b.Bytes())
+	logger.Diagnostics().OnEvent(logger.EventWebRequestPostBody, b.Bytes())
 }
 
 func port() string {
@@ -68,15 +68,15 @@ func main() {
 	logger.SetDiagnostics(logger.NewDiagnosticsAgentFromEnvironment())
 	logger.Diagnostics().EventQueue().UseSynchronousDispatch() //events fire in order, but will hang if queue is full
 	logger.Diagnostics().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
-	logger.Diagnostics().AddEventListener(logger.EventRequest,
+	logger.Diagnostics().AddEventListener(logger.EventWebRequestStart,
 		logger.NewRequestHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request) {
-			logger.WriteRequest(writer, ts, req)
+			logger.WriteRequestStart(writer, ts, req)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventRequestComplete,
+	logger.Diagnostics().AddEventListener(logger.EventWebRequest,
 		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
-			logger.WriteRequestComplete(writer, ts, req, statusCode, contentLengthBytes, elapsed)
+			logger.WriteRequest(writer, ts, req, statusCode, contentLengthBytes, elapsed)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventRequestPostBody,
+	logger.Diagnostics().AddEventListener(logger.EventWebRequestPostBody,
 		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimeSource, body []byte) {
 			logger.WriteRequestBody(writer, ts, body)
 		}))
