@@ -18,7 +18,6 @@ func TestNewDiagnosticsEventQueue(t *testing.T) {
 	eq := newDiagnosticsEventQueue()
 	defer eq.Drain()
 
-	assert.True(eq.IsDispatchSynchronous())
 	assert.Zero(eq.Len())
 	assert.Equal(DefaultDiagnosticsAgentQueueWorkers, eq.NumWorkers())
 	assert.Equal(DefaultDiagnosticsAgentQueueLength, eq.MaxWorkItems())
@@ -62,7 +61,6 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	assert.True(da.Writer().ShowTimestamp())
 	assert.True(da.Writer().ShowLabel())
 	assert.False(da.EventQueue().Running())
-	assert.True(da.EventQueue().IsDispatchSynchronous())
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
@@ -93,7 +91,6 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert.True(da.Writer().ShowTimestamp())
 	assert.True(da.Writer().ShowLabel())
 	assert.False(da.EventQueue().Running())
-	assert.True(da.EventQueue().IsDispatchSynchronous())
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 

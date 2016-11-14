@@ -41,7 +41,6 @@ func SetDiagnostics(diagnostics *DiagnosticsAgent) {
 
 func newDiagnosticsEventQueue() *workQueue.Queue {
 	eq := workQueue.NewQueueWithWorkers(DefaultDiagnosticsAgentQueueWorkers)
-	eq.UseSynchronousDispatch()                            //dispatch items in order
 	eq.SetMaxWorkItems(DefaultDiagnosticsAgentQueueLength) //more than this and queuing will block
 	return eq
 }
@@ -287,5 +286,6 @@ func (da *DiagnosticsAgent) Fatal(err interface{}) {
 
 // Close releases shared resources for the agent.
 func (da *DiagnosticsAgent) Close() error {
-	return da.eventQueue.Drain()
+	da.eventQueue.Drain()
+	return nil
 }

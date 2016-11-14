@@ -10,7 +10,7 @@ import (
 func TestFileCreateOrOpen(t *testing.T) {
 	assert := assert.New(t)
 
-	tempFilePath := os.TempDir() + UUIDv4()
+	tempFilePath := UUIDv4()
 	f, err := File.CreateOrOpen(tempFilePath)
 	assert.Nil(err)
 	assert.NotNil(f)
@@ -25,7 +25,7 @@ func TestFileCreateOrOpen(t *testing.T) {
 func TestFileCreateOrOpenExisting(t *testing.T) {
 	assert := assert.New(t)
 
-	tempFilePath := os.TempDir() + UUIDv4()
+	tempFilePath := UUIDv4()
 
 	orig, err := os.Create(tempFilePath)
 	assert.Nil(err)

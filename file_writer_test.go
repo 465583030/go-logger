@@ -14,7 +14,7 @@ import (
 func TestNewFileWriterUncompressed(t *testing.T) {
 	assert := assert.New(t)
 
-	tempFile := os.TempDir() + UUIDv4()
+	tempFile := UUIDv4()
 	uncompressed, err := NewFileWriter(tempFile, false, FileWriterUnlimitedSize, FileWriterUnlimitedArchiveFiles)
 	assert.Nil(err)
 	assert.NotNil(uncompressed)
@@ -41,7 +41,7 @@ func TestNewFileWriterUncompressed(t *testing.T) {
 func TestNewFileWriterCompressed(t *testing.T) {
 	assert := assert.New(t)
 
-	tempFile := os.TempDir() + UUIDv4()
+	tempFile := UUIDv4()
 	compressed, err := NewFileWriter(tempFile, true, FileWriterUnlimitedSize, FileWriterUnlimitedArchiveFiles)
 	assert.Nil(err)
 	assert.NotNil(compressed)
@@ -68,7 +68,7 @@ func TestNewFileWriterCompressed(t *testing.T) {
 func TestNewFileWriterCompressedArchived(t *testing.T) {
 	assert := assert.New(t)
 
-	tempFile := os.TempDir() + UUIDv4()
+	tempFile := UUIDv4()
 	archived, err := NewFileWriter(tempFile, true, Kilobyte, FileWriterUnlimitedArchiveFiles)
 	assert.Nil(err)
 	assert.NotNil(archived)
@@ -108,13 +108,15 @@ func TestFileWriterShiftArchivedFiles(t *testing.T) {
 	assert := assert.New(t)
 	var err error
 
-	td := os.TempDir()
+	td, err := os.Getwd()
+	assert.Nil(err)
 	id := UUIDv4()
 
-	f1 := td + id + ".1"
-	f2 := td + id + ".2"
-	f3 := td + id + ".3"
-	f4 := td + id + ".4"
+	f1 := filepath.Join(td, id+".1")
+	f2 := filepath.Join(td, id+".2")
+	f3 := filepath.Join(td, id+".3")
+	f4 := filepath.Join(td, id+".4")
+	f5 := filepath.Join(td, id+".5")
 
 	err = File.CreateAndClose(f1)
 	assert.Nil(err)
@@ -125,13 +127,13 @@ func TestFileWriterShiftArchivedFiles(t *testing.T) {
 	err = File.CreateAndClose(f4)
 	assert.Nil(err)
 
-	defer File.RemoveMany(f1, f2, f3, f4)
+	defer File.RemoveMany(f2, f3, f4, f5)
 
-	regex, err := createIsArchivedFileRegexp(td + id)
+	regex, err := createIsArchivedFileRegexp(filepath.Join(td, id))
 	assert.Nil(err)
 
 	fr := &FileWriter{
-		filePath:            td + id,
+		filePath:            filepath.Join(td, id),
 		isArchiveFileRegexp: regex,
 	}
 
@@ -141,23 +143,25 @@ func TestFileWriterShiftArchivedFiles(t *testing.T) {
 	results, err := File.List(td, regex)
 	assert.Nil(err)
 	assert.Len(results, 4)
-	assert.Equal(td+id+".2", results[0])
-	assert.Equal(td+id+".3", results[1])
-	assert.Equal(td+id+".4", results[2])
-	assert.Equal(td+id+".5", results[3])
+	assert.Equal(filepath.Join(td, id+".2"), results[0])
+	assert.Equal(filepath.Join(td, id+".3"), results[1])
+	assert.Equal(filepath.Join(td, id+".4"), results[2])
+	assert.Equal(filepath.Join(td, id+".5"), results[3])
 }
 
 func TestFileWriterShiftCompressedArchivedFiles(t *testing.T) {
 	assert := assert.New(t)
 	var err error
 
-	td := os.TempDir()
+	td, err := os.Getwd()
+	assert.Nil(err)
 	id := UUIDv4()
 
-	f1 := td + id + ".1.gz"
-	f2 := td + id + ".2.gz"
-	f3 := td + id + ".3.gz"
-	f4 := td + id + ".4.gz"
+	f1 := filepath.Join(td, id+".1.gz")
+	f2 := filepath.Join(td, id+".2.gz")
+	f3 := filepath.Join(td, id+".3.gz")
+	f4 := filepath.Join(td, id+".4.gz")
+	f5 := filepath.Join(td, id+".5.gz")
 
 	err = File.CreateAndClose(f1)
 	assert.Nil(err)
@@ -168,13 +172,13 @@ func TestFileWriterShiftCompressedArchivedFiles(t *testing.T) {
 	err = File.CreateAndClose(f4)
 	assert.Nil(err)
 
-	defer File.RemoveMany(f1, f2, f3, f4)
+	defer File.RemoveMany(f2, f3, f4, f5)
 
-	regex, err := createIsCompressedArchiveFileRegexp(td + id)
+	regex, err := createIsCompressedArchiveFileRegexp(filepath.Join(td, id))
 	assert.Nil(err)
 
 	fr := &FileWriter{
-		filePath:                    td + id,
+		filePath:                    filepath.Join(td, id),
 		shouldCompressArchivedFiles: true,
 		isArchiveFileRegexp:         regex,
 	}
@@ -185,23 +189,24 @@ func TestFileWriterShiftCompressedArchivedFiles(t *testing.T) {
 	results, err := File.List(td, regex)
 	assert.Nil(err)
 	assert.Len(results, 4)
-	assert.Equal(td+id+".2.gz", results[0])
-	assert.Equal(td+id+".3.gz", results[1])
-	assert.Equal(td+id+".4.gz", results[2])
-	assert.Equal(td+id+".5.gz", results[3])
+	assert.Equal(filepath.Join(td, id+".2.gz"), results[0])
+	assert.Equal(filepath.Join(td, id+".3.gz"), results[1])
+	assert.Equal(filepath.Join(td, id+".4.gz"), results[2])
+	assert.Equal(filepath.Join(td, id+".5.gz"), results[3])
 }
 
 func TestFileWriterShiftCompressedArchivedFilesWithMax(t *testing.T) {
 	assert := assert.New(t)
 	var err error
 
-	td := os.TempDir()
+	td, err := os.Getwd()
+	assert.Nil(err)
 	id := UUIDv4()
 
-	f1 := td + id + ".1.gz"
-	f2 := td + id + ".2.gz"
-	f3 := td + id + ".3.gz"
-	f4 := td + id + ".4.gz"
+	f1 := filepath.Join(td, id+".1.gz")
+	f2 := filepath.Join(td, id+".2.gz")
+	f3 := filepath.Join(td, id+".3.gz")
+	f4 := filepath.Join(td, id+".4.gz")
 
 	err = File.CreateAndClose(f1)
 	assert.Nil(err)
@@ -212,13 +217,13 @@ func TestFileWriterShiftCompressedArchivedFilesWithMax(t *testing.T) {
 	err = File.CreateAndClose(f4)
 	assert.Nil(err)
 
-	defer File.RemoveMany(f1, f2, f3, f4)
+	defer File.RemoveMany(f2, f3)
 
-	regex, err := createIsCompressedArchiveFileRegexp(td + id)
+	regex, err := createIsCompressedArchiveFileRegexp(filepath.Join(td, id))
 	assert.Nil(err)
 
 	fr := &FileWriter{
-		filePath:                    td + id,
+		filePath:                    filepath.Join(td, id),
 		shouldCompressArchivedFiles: true,
 		isArchiveFileRegexp:         regex,
 		fileMaxArchiveCount:         3,
@@ -230,8 +235,8 @@ func TestFileWriterShiftCompressedArchivedFilesWithMax(t *testing.T) {
 	results, err := File.List(td, regex)
 	assert.Nil(err)
 	assert.Len(results, 2, fmt.Sprintf("%#v", results))
-	assert.Equal(td+id+".2.gz", results[0])
-	assert.Equal(td+id+".3.gz", results[1])
+	assert.Equal(filepath.Join(td, id+".2.gz"), results[0])
+	assert.Equal(filepath.Join(td, id+".3.gz"), results[1])
 }
 
 func TestFileWriterExtractArchivedFileIndex(t *testing.T) {
