@@ -66,7 +66,6 @@ func port() string {
 
 func main() {
 	logger.SetDiagnostics(logger.NewDiagnosticsAgentFromEnvironment())
-	logger.Diagnostics().EventQueue().UseSynchronousDispatch() //events fire in order, but will hang if queue is full
 	logger.Diagnostics().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
 	logger.Diagnostics().AddEventListener(logger.EventWebRequestStart,
 		logger.NewRequestHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request) {
