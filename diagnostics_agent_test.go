@@ -16,7 +16,7 @@ func TestNewDiagnosticsEventQueue(t *testing.T) {
 	assert := assert.New(t)
 
 	eq := newDiagnosticsEventQueue()
-	defer eq.Drain()
+	defer eq.Close()
 
 	assert.Zero(eq.Len())
 	assert.Equal(DefaultDiagnosticsAgentQueueWorkers, eq.NumWorkers())
