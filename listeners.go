@@ -22,11 +22,11 @@ func NewErrorListener(listener ErrorListener) EventListener {
 	}
 }
 
-// RequestListener is a listener for request events.
-type RequestListener func(writer Logger, ts TimeSource, req *http.Request)
+// RequestStartListener is a listener for request events.
+type RequestStartListener func(writer Logger, ts TimeSource, req *http.Request)
 
-// NewRequestListener returns a new handler for request events.
-func NewRequestListener(listener RequestListener) EventListener {
+// NewRequestStartListener returns a new handler for request events.
+func NewRequestStartListener(listener RequestStartListener) EventListener {
 	return func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		if len(state) > 0 {
 			if typedRequest, isTyped := state[0].(*http.Request); isTyped {
@@ -36,11 +36,11 @@ func NewRequestListener(listener RequestListener) EventListener {
 	}
 }
 
-// RequestCompleteListener is a listener for request events.
-type RequestCompleteListener func(writer Logger, ts TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration)
+// RequestListener is a listener for request events.
+type RequestListener func(writer Logger, ts TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration)
 
-// NewRequestCompleteListener returns a new handler for request events.
-func NewRequestCompleteListener(listener RequestCompleteListener) EventListener {
+// NewRequestListener returns a new handler for request events.
+func NewRequestListener(listener RequestListener) EventListener {
 	return func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		if len(state) < 3 {
 			return
