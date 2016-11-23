@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	workQueue "github.com/blendlabs/go-workqueue"
 )
@@ -290,4 +291,14 @@ func (da *DiagnosticsAgent) Fatal(err interface{}) {
 // Close releases shared resources for the agent.
 func (da *DiagnosticsAgent) Close() error {
 	return da.eventQueue.Close()
+}
+
+// Drain waits for the agent to finish it's queue of events before closing.
+func (da *DiagnosticsAgent) Drain() error {
+	da.SetVerbosity(NewEventFlagSetNone())
+
+	for da.eventQueue.Len() > 0 {
+		time.Sleep(time.Millisecond)
+	}
+	return da.Close()
 }
