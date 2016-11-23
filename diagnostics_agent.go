@@ -133,6 +133,9 @@ func (da *DiagnosticsAgent) RemoveListeners(eventFlag EventFlag) {
 
 // OnEvent fires the currently configured event listeners.
 func (da *DiagnosticsAgent) OnEvent(eventFlag EventFlag, state ...interface{}) {
+	if da == nil {
+		return
+	}
 	if da.IsEnabled(eventFlag) {
 		if da.HasListener(eventFlag) {
 			if !da.eventQueue.Running() {
