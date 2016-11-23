@@ -86,3 +86,20 @@ func NewRequestBodyListener(listener RequestBodyListener) EventListener {
 		listener(writer, ts, body)
 	}
 }
+
+// ResponseListener is a handler for response body events.
+type ResponseListener func(writer Logger, ts TimeSource, body []byte)
+
+// NewResponseListener creates a new listener for response body events.
+func NewResponseListener(listener ResponseListener) EventListener {
+	return func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+		if len(state) < 1 {
+			return
+		}
+		res, err := stateAsBytes(state[0])
+		if err != nil {
+			return
+		}
+		listener(writer, ts, res)
+	}
+}
