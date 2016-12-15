@@ -11,12 +11,28 @@ type EventListener func(writer Logger, ts TimeSource, eventFlag EventFlag, state
 // ErrorListener is a handler for error events.
 type ErrorListener func(writer Logger, ts TimeSource, err error)
 
+// ErrorWithRequestListener is a handler for error events.
+type ErrorWithRequestListener func(writer Logger, ts TimeSource, err error, req *http.Request)
+
 // NewErrorListener returns a new handler for EventFatalError and EventError events.
 func NewErrorListener(listener ErrorListener) EventListener {
 	return func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		if len(state) > 0 {
 			if typedError, isTyped := state[0].(error); isTyped {
 				listener(writer, ts, typedError)
+			}
+		}
+	}
+}
+
+// NewErrorWithRequestListener returns a new handler for EventFatalError and EventError events with a request.
+func NewErrorWithRequestListener(listener ErrorWithRequestListener) EventListener {
+	return func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+		if len(state) > 0 {
+			if typedError, isTyped := state[0].(error); isTyped {
+				if typedReq, isReqTyped := state[1].(*http.Request); isReqTyped {
+					listener(writer, ts, typedError, typedReq)
+				}
 			}
 		}
 	}
