@@ -28,11 +28,15 @@ func NewErrorListener(listener ErrorListener) EventListener {
 // NewErrorWithRequestListener returns a new handler for EventFatalError and EventError events with a request.
 func NewErrorWithRequestListener(listener ErrorWithRequestListener) EventListener {
 	return func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
-		if len(state) > 0 {
+		if len(state) > 1 {
 			if typedError, isTyped := state[0].(error); isTyped {
 				if typedReq, isReqTyped := state[1].(*http.Request); isReqTyped {
 					listener(writer, ts, typedError, typedReq)
 				}
+			}
+		} else if len(state) > 0 {
+			if typedError, isTyped := state[0].(error); isTyped {
+				listener(writer, ts, typedError, nil)
 			}
 		}
 	}
