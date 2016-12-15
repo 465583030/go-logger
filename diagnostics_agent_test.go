@@ -17,11 +17,9 @@ func TestNewDiagnosticsEventQueue(t *testing.T) {
 
 	eq := newDiagnosticsEventQueue()
 	defer eq.Close()
-
 	assert.Zero(eq.Len())
 	assert.Equal(DefaultDiagnosticsAgentQueueWorkers, eq.NumWorkers())
 	assert.Equal(DefaultDiagnosticsAgentQueueLength, eq.MaxWorkItems())
-	assert.False(eq.Running())
 }
 
 func TestNewDiagnosticsAgent(t *testing.T) {
@@ -60,7 +58,6 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	assert.True(da.Writer().UseAnsiColors())
 	assert.True(da.Writer().ShowTimestamp())
 	assert.True(da.Writer().ShowLabel())
-	assert.False(da.EventQueue().Running())
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
@@ -90,7 +87,6 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert.True(da.Writer().UseAnsiColors())
 	assert.True(da.Writer().ShowTimestamp())
 	assert.True(da.Writer().ShowLabel())
-	assert.False(da.EventQueue().Running())
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
@@ -260,7 +256,7 @@ func TestDiagnosticsAgentErrorf(t *testing.T) {
 		defer wg.Done()
 	})
 
-	da.ErrorEventf(EventError, ColorWhite, "%s World", "Hello")
+	da.Errorf("%s World", "Hello")
 	wg.Wait()
 
 	assert.Zero(stdout.Len())

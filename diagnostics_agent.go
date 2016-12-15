@@ -43,6 +43,7 @@ func SetDiagnostics(diagnostics *DiagnosticsAgent) {
 func newDiagnosticsEventQueue() *workQueue.Queue {
 	eq := workQueue.NewWithWorkers(DefaultDiagnosticsAgentQueueWorkers)
 	eq.SetMaxWorkItems(DefaultDiagnosticsAgentQueueLength) //more than this and queuing will block
+	eq.Start()
 	return eq
 }
 
@@ -134,17 +135,8 @@ func (da *DiagnosticsAgent) RemoveListeners(eventFlag EventFlag) {
 
 // OnEvent fires the currently configured event listeners.
 func (da *DiagnosticsAgent) OnEvent(eventFlag EventFlag, state ...interface{}) {
-	if da == nil {
-		return
-	}
-	if da.IsEnabled(eventFlag) {
-		if da.HasListener(eventFlag) {
-			if !da.eventQueue.Running() {
-				da.eventQueue.Start()
-			}
-
-			da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, state...)...)
-		}
+	if da.IsEnabled(eventFlag) && da.HasListener(eventFlag) {
+		da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, state...)...)
 	}
 }
 
@@ -176,23 +168,14 @@ func (da *DiagnosticsAgent) fireEvent(actionState ...interface{}) error {
 // Eventf checks an event flag and writes a message with a given color.
 func (da *DiagnosticsAgent) Eventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
-		defer da.OnEvent(eventFlag)
-
-		if !da.eventQueue.Running() {
-			da.eventQueue.Start()
-		}
 		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
+		da.OnEvent(eventFlag)
 	}
 }
 
 // ErrorEventf checks an event flag and writes a message to the error stream (if one is configured) with a given color.
 func (da *DiagnosticsAgent) ErrorEventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
-		defer da.OnEvent(eventFlag)
-
-		if !da.eventQueue.Running() {
-			da.eventQueue.Start()
-		}
 		da.eventQueue.Enqueue(da.writeErrorEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 	}
 }
@@ -251,41 +234,54 @@ func (da *DiagnosticsAgent) DebugDump(object interface{}) {
 }
 
 // Warningf logs a debug message to the output stream.
-func (da *DiagnosticsAgent) Warningf(format string, args ...interface{}) {
-	da.ErrorEventf(EventWarning, ColorYellow, format, args...)
+func (da *DiagnosticsAgent) Warningf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
+	da.ErrorEventf(EventWarning, ColorYellow, err.Error())
+	da.OnEvent(EventWarning, err)
+	return err
 }
 
 // Warning logs a warning error to std err.
 func (da *DiagnosticsAgent) Warning(err error) error {
 	if err != nil {
-		da.Warningf(err.Error())
+		da.ErrorEventf(EventWarning, ColorYellow, err.Error())
+		da.OnEvent(EventWarning, err)
 	}
 	return err
 }
 
 // Errorf writes an event to the log and triggers event listeners.
-func (da *DiagnosticsAgent) Errorf(format string, args ...interface{}) {
+func (da *DiagnosticsAgent) Errorf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
 	da.ErrorEventf(EventError, ColorRed, format, args...)
+	da.OnEvent(EventError, err)
+	return err
 }
 
 // Fatal logs an error to std err.
 func (da *DiagnosticsAgent) Error(err error) error {
 	if err != nil {
-		da.Errorf(err.Error())
+		da.ErrorEventf(EventError, ColorRed, err.Error())
+		da.OnEvent(EventError, err)
 	}
 	return err
 }
 
 // Fatalf writes an event to the log and triggers event listeners.
-func (da *DiagnosticsAgent) Fatalf(format string, args ...interface{}) {
+func (da *DiagnosticsAgent) Fatalf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
 	da.ErrorEventf(EventFatalError, ColorRed, format, args...)
+	da.OnEvent(EventFatalError, err)
+	return err
 }
 
 // Fatal logs the result of a panic to std err.
-func (da *DiagnosticsAgent) Fatal(err interface{}) {
+func (da *DiagnosticsAgent) Fatal(err error) error {
 	if err != nil {
-		da.Fatalf("%v", err)
+		da.ErrorEventf(EventFatalError, ColorRed, err.Error())
+		da.OnEvent(EventFatalError, err)
 	}
+	return err
 }
 
 // Close releases shared resources for the agent.
