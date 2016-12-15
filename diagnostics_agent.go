@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -267,6 +268,15 @@ func (da *DiagnosticsAgent) Error(err error) error {
 	return err
 }
 
+// ErrorWithReq logs an error to std err with a request.
+func (da *DiagnosticsAgent) ErrorWithReq(err error, req *http.Request) error {
+	if err != nil {
+		da.ErrorEventf(EventError, ColorRed, err.Error())
+		da.OnEvent(EventError, err, req)
+	}
+	return err
+}
+
 // Fatalf writes an event to the log and triggers event listeners.
 func (da *DiagnosticsAgent) Fatalf(format string, args ...interface{}) error {
 	err := fmt.Errorf(format, args...)
@@ -280,6 +290,15 @@ func (da *DiagnosticsAgent) Fatal(err error) error {
 	if err != nil {
 		da.ErrorEventf(EventFatalError, ColorRed, err.Error())
 		da.OnEvent(EventFatalError, err)
+	}
+	return err
+}
+
+// FatalWithReq logs the result of a fatal error to std err with a request.
+func (da *DiagnosticsAgent) FatalWithReq(err error, req *http.Request) error {
+	if err != nil {
+		da.ErrorEventf(EventFatalError, ColorRed, err.Error())
+		da.OnEvent(EventFatalError, err, req)
 	}
 	return err
 }
