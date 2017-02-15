@@ -35,7 +35,8 @@ func TestEventFlagSetEnableAll(t *testing.T) {
 	assert.True(set.IsEnabled("NOT_TEST"))
 	assert.True(set.IsEnabled("NOT_TEST"))
 	set.Disable("TEST")
-	assert.True(set.IsEnabled("TEST"))
+	assert.True(set.IsEnabled("NOT_TEST"))
+	assert.False(set.IsEnabled("TEST"))
 }
 
 func TestEventFlagSetFromEnvironment(t *testing.T) {
