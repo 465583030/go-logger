@@ -89,6 +89,7 @@ func NewEventFlagSetFromEnvironment() *EventFlagSet {
 			if string(parsedFlag) == string(EventAll) {
 				flagSet.all = true
 			}
+
 			if string(parsedFlag) == string(EventNone) {
 				flagSet.none = true
 			}
@@ -165,13 +166,14 @@ func (efs EventFlagSet) IsEnabled(flagValue EventFlag) bool {
 }
 
 func (efs EventFlagSet) String() string {
-	if efs.all {
-		return string(EventAll)
-	}
 	if efs.none {
 		return string(EventNone)
 	}
+
 	var flags []string
+	if efs.all {
+		flags = []string{string(EventAll)}
+	}
 	for key, enabled := range efs.flags {
 		if enabled {
 			flags = append(flags, string(key))
