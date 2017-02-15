@@ -175,10 +175,12 @@ func (efs EventFlagSet) String() string {
 		flags = []string{string(EventAll)}
 	}
 	for key, enabled := range efs.flags {
-		if enabled {
-			flags = append(flags, string(key))
-		} else {
-			flags = append(flags, "-"+string(key))
+		if key != EventAll {
+			if enabled {
+				flags = append(flags, string(key))
+			} else {
+				flags = append(flags, "-"+string(key))
+			}
 		}
 	}
 	return strings.Join(flags, ", ")
