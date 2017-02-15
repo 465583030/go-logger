@@ -55,6 +55,20 @@ func TestEventFlagSetFromEnvironment(t *testing.T) {
 	assert.False(set.IsEnabled(EventFatalError))
 }
 
+func TestEventFlagSetFromEnvironmentWithDisabled(t *testing.T) {
+	assert := assert.New(t)
+
+	oldLogVerbosity := os.Getenv(EnvironmentVariableLogEvents)
+	defer func() {
+		os.Setenv(EnvironmentVariableLogEvents, oldLogVerbosity)
+	}()
+	os.Setenv(EnvironmentVariableLogEvents, "all,-debug")
+
+	set := NewEventFlagSetFromEnvironment()
+	assert.True(set.IsEnabled(EventError))
+	assert.False(set.IsEnabled(EventDebug))
+}
+
 func TestEventFlagSetFromEnvironmentAll(t *testing.T) {
 	assert := assert.New(t)
 
