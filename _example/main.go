@@ -16,10 +16,10 @@ var pool = logger.NewBufferPool(16)
 func logged(handler http.HandlerFunc) http.HandlerFunc {
 	return func(res http.ResponseWriter, req *http.Request) {
 		start := time.Now()
-		logger.Diagnostics().OnEvent(logger.EventWebRequestStart, req)
+		logger.Default().OnEvent(logger.EventWebRequestStart, req)
 		rw := logger.NewResponseWriter(res)
 		handler(rw, req)
-		logger.Diagnostics().OnEvent(logger.EventWebRequest, req, rw.StatusCode(), rw.ContentLength(), time.Now().Sub(start))
+		logger.Default().OnEvent(logger.EventWebRequest, req, rw.StatusCode(), rw.ContentLength(), time.Now().Sub(start))
 	}
 }
 
@@ -30,19 +30,19 @@ func indexHandler(res http.ResponseWriter, req *http.Request) {
 
 func fatalErrorHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusInternalServerError)
-	logger.Diagnostics().Fatal(exception.New("this is a fatal exception"))
+	logger.Default().Fatal(exception.New("this is a fatal exception"))
 	res.Write([]byte(`{"status":"not ok."}`))
 }
 
 func errorHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusInternalServerError)
-	logger.Diagnostics().Error(exception.New("this is an exception"))
+	logger.Default().Error(exception.New("this is an exception"))
 	res.Write([]byte(`{"status":"not ok."}`))
 }
 
 func warningHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusBadRequest)
-	logger.Diagnostics().Warning(exception.New("this is warning"))
+	logger.Default().Warning(exception.New("this is warning"))
 	res.Write([]byte(`{"status":"not ok."}`))
 }
 
@@ -53,7 +53,7 @@ func postHandler(res http.ResponseWriter, req *http.Request) {
 	defer pool.Put(b)
 	b.ReadFrom(req.Body)
 	res.Write([]byte(fmt.Sprintf(`{"status":"ok!","received_bytes":%d}`, b.Len())))
-	logger.Diagnostics().OnEvent(logger.EventWebRequestPostBody, b.Bytes())
+	logger.Default().OnEvent(logger.EventWebRequestPostBody, b.Bytes())
 }
 
 func port() string {
@@ -65,7 +65,7 @@ func port() string {
 }
 
 func main() {
-	logger.SetDefault(logger.NewDiagnosticsAgentFromEnvironment())
+	logger.SetDefault(logger.NewFromEnvironment())
 	logger.Default().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
 
 	logger.Default().AddEventListener(logger.EventWebRequestStart,
@@ -91,7 +91,7 @@ func main() {
 	http.HandleFunc("/error", logged(errorHandler))
 	http.HandleFunc("/warning", logged(warningHandler))
 	http.HandleFunc("/post", logged(postHandler))
-	logger.Diagnostics().Infof("Listening on :%s", port())
-	logger.Diagnostics().Infof("Diagnostics %s", logger.Diagnostics().Events().String())
+	logger.Default().Infof("Listening on :%s", port())
+	logger.Default().Infof("Events %s", logger.Default().Events().String())
 	log.Fatal(http.ListenAndServe(":"+port(), nil))
 }

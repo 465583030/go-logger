@@ -12,21 +12,21 @@ import (
 	"github.com/blendlabs/go-assert"
 )
 
-func TestNewDiagnosticsEventQueue(t *testing.T) {
+func TestNewEventQueue(t *testing.T) {
 	assert := assert.New(t)
 
-	eq := newDiagnosticsEventQueue()
+	eq := newEventQueue()
 	defer eq.Close()
 	assert.Zero(eq.Len())
-	assert.Equal(DefaultDiagnosticsAgentQueueWorkers, eq.NumWorkers())
-	assert.Equal(DefaultDiagnosticsAgentQueueLength, eq.MaxWorkItems())
+	assert.Equal(DefaultAgentQueueWorkers, eq.NumWorkers())
+	assert.Equal(DefaultAgentQueueLength, eq.MaxWorkItems())
 }
 
-func TestNewDiagnosticsAgent(t *testing.T) {
+func TestNewAgent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da)
@@ -36,7 +36,7 @@ func TestNewDiagnosticsAgent(t *testing.T) {
 	assert.NotNil(da.eventQueue)
 }
 
-func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
+func TestNewAgentFromEnvironment(t *testing.T) {
 	assert := assert.New(t)
 
 	oldLogVerbosity := os.Getenv(EnvironmentVariableLogEvents)
@@ -51,7 +51,7 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	}()
 	os.Setenv(EnvironmentVariableLogLabel, "Testing Harness")
 
-	da := NewDiagnosticsAgentFromEnvironment()
+	da := NewFromEnvironment()
 	defer da.Close()
 
 	assert.NotNil(da.Events())
@@ -61,7 +61,7 @@ func TestNewDiagnosticsAgentFromEnvironment(t *testing.T) {
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
-func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
+func TestNewAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert := assert.New(t)
 
 	oldLogVerbosity := os.Getenv(EnvironmentVariableLogEvents)
@@ -76,7 +76,7 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	}()
 	os.Setenv(EnvironmentVariableLogLabel, "Testing Harness")
 
-	da := NewDiagnosticsAgentFromEnvironment()
+	da := NewFromEnvironment()
 	defer da.Close()
 
 	assert.True(da.IsEnabled(EventError))
@@ -90,10 +90,10 @@ func TestNewDiagnosticsAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
-func TestDiagnosticsAgentEnableDisableEvent(t *testing.T) {
+func TestAgentEnableDisableEvent(t *testing.T) {
 	assert := assert.New(t)
 
-	da := NewDiagnosticsAgent(NewEventFlagSet())
+	da := New(NewEventFlagSet())
 	da.EnableEvent("TEST")
 	assert.True(da.IsEnabled("TEST"))
 	da.EnableEvent("FOO")
@@ -104,19 +104,19 @@ func TestDiagnosticsAgentEnableDisableEvent(t *testing.T) {
 	assert.True(da.IsEnabled("FOO"))
 }
 
-func TestDiagnosticAgentVerbosity(t *testing.T) {
+func TestAgentVerbosity(t *testing.T) {
 	assert := assert.New(t)
 
-	da := NewDiagnosticsAgent(NewEventFlagSetAll())
+	da := New(NewEventFlagSetAll())
 	da.SetVerbosity(NewEventFlagSetWithEvents(EventInfo))
 	assert.True(da.IsEnabled(EventInfo))
 	assert.False(da.IsEnabled(EventWebRequest))
 }
 
-func TestDiagnosticsAgentAddEventListener(t *testing.T) {
+func TestAgentAddEventListener(t *testing.T) {
 	assert := assert.New(t)
 
-	da := NewDiagnosticsAgent(NewEventFlagSetAll())
+	da := New(NewEventFlagSetAll())
 
 	assert.NotNil(da.eventListeners)
 	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
@@ -124,11 +124,11 @@ func TestDiagnosticsAgentAddEventListener(t *testing.T) {
 	assert.True(da.HasListener(EventError))
 }
 
-func TestDiagnosticsAgentOnEvent(t *testing.T) {
+func TestAgentOnEvent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
@@ -150,11 +150,11 @@ func TestDiagnosticsAgentOnEvent(t *testing.T) {
 	wg.Wait()
 }
 
-func TestDiagnosticsAgentOnEventMultipleListeners(t *testing.T) {
+func TestAgentOnEventMultipleListeners(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
@@ -184,11 +184,11 @@ func TestDiagnosticsAgentOnEventMultipleListeners(t *testing.T) {
 	wg.Wait()
 }
 
-func TestDiagnosticsAgentOnEventUnhandled(t *testing.T) {
+func TestAgentOnEventUnhandled(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
@@ -203,11 +203,11 @@ func TestDiagnosticsAgentOnEventUnhandled(t *testing.T) {
 	da.OnEvent(EventFatalError, "Hello", "World")
 }
 
-func TestDiagnosticsAgentOnEventUnflagged(t *testing.T) {
+func TestAgentOnEventUnflagged(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventInfo, EventWebRequest), NewLogWriter(buffer))
+	da := New(NewEventFlagSetWithEvents(EventInfo, EventWebRequest), NewLogWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
@@ -220,11 +220,11 @@ func TestDiagnosticsAgentOnEventUnflagged(t *testing.T) {
 	da.OnEvent(EventError, "Hello", "World")
 }
 
-func TestDiagnosticsAgentEventf(t *testing.T) {
+func TestAgentEventf(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
@@ -241,12 +241,12 @@ func TestDiagnosticsAgentEventf(t *testing.T) {
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"), buffer.String())
 }
 
-func TestDiagnosticsAgentErrorf(t *testing.T) {
+func TestAgentErrorf(t *testing.T) {
 	assert := assert.New(t)
 
 	stdout := bytes.NewBuffer([]byte{})
 	stderr := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(stdout, stderr))
+	da := New(NewEventFlagSetAll(), NewLogWriter(stdout, stderr))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
@@ -264,11 +264,11 @@ func TestDiagnosticsAgentErrorf(t *testing.T) {
 	assert.True(strings.HasSuffix(stderr.String(), "Hello World\n"), stderr.String())
 }
 
-func TestDiagnosticsAgentFireEvent(t *testing.T) {
+func TestAgentFireEvent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 	da.writer.SetUseAnsiColors(false)
 
@@ -284,11 +284,11 @@ func TestDiagnosticsAgentFireEvent(t *testing.T) {
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
 }
 
-func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
+func TestAgentWriteEventMessageWithOutput(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := NewDiagnosticsAgent(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
 
 	da.writer.SetUseAnsiColors(false)
@@ -300,10 +300,10 @@ func TestDiagnosticsAgentWriteEventMessageWithOutput(t *testing.T) {
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))
 }
 
-func TestDiagnosticsAgentRemoveListeners(t *testing.T) {
+func TestAgentRemoveListeners(t *testing.T) {
 	assert := assert.New(t)
 
-	da := NewDiagnosticsAgent(NewEventFlagSetAll())
+	da := New(NewEventFlagSetAll())
 	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
 	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
 	da.RemoveListeners(EventError)
@@ -312,10 +312,10 @@ func TestDiagnosticsAgentRemoveListeners(t *testing.T) {
 
 }
 
-func BenchmarkDiagnosticsAgentIsEnabled(b *testing.B) {
+func BenchmarkAgentIsEnabled(b *testing.B) {
 	for iter := 0; iter < b.N; iter++ {
 		for subIter := 0; subIter < 50; subIter++ {
-			da := NewDiagnosticsAgent(NewEventFlagSetWithEvents(EventFatalError, EventError, EventWebRequest, EventInfo))
+			da := New(NewEventFlagSetWithEvents(EventFatalError, EventError, EventWebRequest, EventInfo))
 			da.IsEnabled(EventFatalError)
 			da.IsEnabled(EventWebUserError)
 			da.IsEnabled(EventDebug)
