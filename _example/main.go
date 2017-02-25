@@ -65,21 +65,22 @@ func port() string {
 }
 
 func main() {
-	logger.SetDiagnostics(logger.NewDiagnosticsAgentFromEnvironment())
-	logger.Diagnostics().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
-	logger.Diagnostics().AddEventListener(logger.EventWebRequestStart,
-		logger.NewRequestHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request) {
+	logger.SetDefault(logger.NewDiagnosticsAgentFromEnvironment())
+	logger.Default().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
+
+	logger.Default().AddEventListener(logger.EventWebRequestStart,
+		logger.NewRequestStartListener(func(writer logger.Logger, ts logger.TimeSource, req *http.Request) {
 			logger.WriteRequestStart(writer, ts, req)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventWebRequest,
-		logger.NewRequestCompleteHandler(func(writer logger.Logger, ts logger.TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
+	logger.Default().AddEventListener(logger.EventWebRequest,
+		logger.NewRequestListener(func(writer logger.Logger, ts logger.TimeSource, req *http.Request, statusCode, contentLengthBytes int, elapsed time.Duration) {
 			logger.WriteRequest(writer, ts, req, statusCode, contentLengthBytes, elapsed)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventWebRequestPostBody,
-		logger.NewRequestBodyHandler(func(writer logger.Logger, ts logger.TimeSource, body []byte) {
+	logger.Default().AddEventListener(logger.EventWebRequestPostBody,
+		logger.NewRequestBodyListener(func(writer logger.Logger, ts logger.TimeSource, body []byte) {
 			logger.WriteRequestBody(writer, ts, body)
 		}))
-	logger.Diagnostics().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, e logger.EventFlag, args ...interface{}) {
+	logger.Default().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, e logger.EventFlag, args ...interface{}) {
 		//ping an external service?
 		//log something to the db?
 		//this action will be handled by a separate go-routine

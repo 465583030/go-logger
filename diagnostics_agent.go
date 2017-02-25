@@ -13,7 +13,7 @@ import (
 var (
 	// DefaultDiagnosticsAgentQueueWorkers is the number of consumers
 	// for the diagnostics agent work queue.
-	DefaultDiagnosticsAgentQueueWorkers = 1
+	DefaultDiagnosticsAgentQueueWorkers = 2
 
 	// DefaultDiagnosticsAgentQueueLength is the maximum number of items to buffer in the event queue.
 	DefaultDiagnosticsAgentQueueLength = 1 << 10 // 1024
