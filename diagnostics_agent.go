@@ -16,7 +16,7 @@ var (
 	DefaultDiagnosticsAgentQueueWorkers = 1
 
 	// DefaultDiagnosticsAgentQueueLength is the maximum number of items to buffer in the event queue.
-	DefaultDiagnosticsAgentQueueLength = 1 << 10 // 1024
+	DefaultDiagnosticsAgentQueueLength = 1 << 18 // 256k
 )
 
 var (
