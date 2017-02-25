@@ -66,7 +66,6 @@ func port() string {
 
 func main() {
 	logger.SetDefault(logger.NewFromEnvironment())
-	logger.Default().EventQueue().SetMaxWorkItems(1 << 20) //make the queue size enormous (~1mm items)
 
 	logger.Default().AddEventListener(logger.EventWebRequestStart,
 		logger.NewRequestStartListener(func(writer logger.Logger, ts logger.TimeSource, req *http.Request) {

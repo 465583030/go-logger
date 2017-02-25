@@ -51,7 +51,7 @@ func newEventQueue() *workqueue.Queue {
 func New(events *EventFlagSet, optionalWriter ...Logger) *Agent {
 	diag := &Agent{
 		events:         events,
-		eventQueue:     newEventQueue(),
+		eventQueues:    map[EventFlag]*workqueue.Queue{},
 		eventListeners: map[EventFlag][]EventListener{},
 	}
 
@@ -60,6 +60,7 @@ func New(events *EventFlagSet, optionalWriter ...Logger) *Agent {
 	} else {
 		diag.writer = NewLogWriter(os.Stdout, os.Stderr)
 	}
+
 	return diag
 }
 
@@ -70,10 +71,11 @@ func NewFromEnvironment() *Agent {
 
 // Agent is a handler for various logging events with descendent handlers.
 type Agent struct {
-	writer         Logger
-	events         *EventFlagSet
-	eventListeners map[EventFlag][]EventListener
-	eventQueue     *workqueue.Queue
+	writer          Logger
+	events          *EventFlagSet
+	eventListeners  map[EventFlag][]EventListener
+	eventQueuesLock sync.Mutex
+	eventQueues     map[EventFlag]*workqueue.Queue
 }
 
 // Writer returns the inner Logger for the diagnostics agent.
@@ -82,8 +84,20 @@ func (da *Agent) Writer() Logger {
 }
 
 // EventQueue returns the inner event queue for the agent.
-func (da *Agent) EventQueue() *workqueue.Queue {
-	return da.eventQueue
+func (da *Agent) EventQueue(eventFlag EventFlag) *workqueue.Queue {
+	if queue, hasQueue := da.eventQueues[eventFlag]; hasQueue && queue != nil {
+		return queue
+	}
+
+	var queue *workqueue.Queue
+	var hasQueue bool
+	da.eventQueuesLock.Lock()
+	if queue, hasQueue = da.eventQueues[eventFlag]; !hasQueue {
+		queue = newEventQueue()
+		da.eventQueues[eventFlag] = queue
+	}
+	da.eventQueuesLock.Unlock()
+	return queue
 }
 
 // Events returns the EventFlagSet
@@ -99,6 +113,14 @@ func (da *Agent) SetVerbosity(events *EventFlagSet) {
 // EnableEvent flips the bit flag for a given event.
 func (da *Agent) EnableEvent(eventFlag EventFlag) {
 	da.events.Enable(eventFlag)
+
+	if _, hasQueue := da.eventQueues[eventFlag]; !hasQueue {
+		da.eventQueuesLock.Lock()
+		if _, hasQueue := da.eventQueues[eventFlag]; !hasQueue {
+			da.eventQueues[eventFlag] = newEventQueue()
+		}
+		da.eventQueuesLock.Unlock()
+	}
 }
 
 // DisableEvent flips the bit flag for a given event.
@@ -136,7 +158,7 @@ func (da *Agent) RemoveListeners(eventFlag EventFlag) {
 // OnEvent fires the currently configured event listeners.
 func (da *Agent) OnEvent(eventFlag EventFlag, state ...interface{}) {
 	if da.IsEnabled(eventFlag) && da.HasListener(eventFlag) {
-		da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, state...)...)
+		da.EventQueue(eventFlag).Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, state...)...)
 	}
 }
 
@@ -168,7 +190,7 @@ func (da *Agent) fireEvent(actionState ...interface{}) error {
 // Eventf checks an event flag and writes a message with a given color.
 func (da *Agent) Eventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
-		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
+		da.EventQueue(eventFlag).Enqueue(da.writeEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 		da.OnEvent(eventFlag)
 	}
 }
@@ -176,7 +198,7 @@ func (da *Agent) Eventf(eventFlag EventFlag, color AnsiColorCode, format string,
 // ErrorEventf checks an event flag and writes a message to the error stream (if one is configured) with a given color.
 func (da *Agent) ErrorEventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
-		da.eventQueue.Enqueue(da.writeErrorEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
+		da.EventQueue(eventFlag).Enqueue(da.writeErrorEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 	}
 }
 
@@ -304,14 +326,27 @@ func (da *Agent) FatalWithReq(err error, req *http.Request) error {
 
 // Close releases shared resources for the agent.
 func (da *Agent) Close() error {
-	return da.eventQueue.Close()
+	da.eventQueuesLock.Lock()
+	defer da.eventQueuesLock.Unlock()
+	var err error
+	for _, queue := range da.eventQueues {
+		err = queue.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Drain waits for the agent to finish it's queue of events before closing.
 func (da *Agent) Drain() error {
 	da.SetVerbosity(NewEventFlagSetNone())
 
-	for da.eventQueue.Len() > 0 {
+	var hasItems bool
+	for _, queue := range da.eventQueues {
+		hasItems = hasItems || queue.Len() > 0
+	}
+	if hasItems {
 		time.Sleep(time.Millisecond)
 	}
 	return da.Close()
