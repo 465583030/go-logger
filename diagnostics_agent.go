@@ -12,10 +12,10 @@ import (
 
 var (
 	// DefaultAgentQueueWorkers is the number of consumers (goroutines) for the agent work queue.
-	DefaultAgentQueueWorkers = 64
+	DefaultAgentQueueWorkers = 4
 
 	// DefaultAgentQueueLength is the maximum number of items to buffer in the event queue.
-	DefaultAgentQueueLength = 1 << 18 // 256k
+	DefaultAgentQueueLength = 1 << 20 // 1mm items
 )
 
 var (
