@@ -11,11 +11,11 @@ func TestGetIP(t *testing.T) {
 	assert := assert.New(t)
 
 	hdr := http.Header{}
-	hdr.Set("X-Forwarded-For", "1")
+	hdr.Set("X-Forwarded-For", "123")
 	r := http.Request{
 		Header: hdr,
 	}
-	assert.Equal("1", GetIP(&r))
+	assert.Equal("123", GetIP(&r))
 
 	hdr = http.Header{}
 	hdr.Set("X-FORWARDED-FOR", "1")

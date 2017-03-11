@@ -169,7 +169,7 @@ func (da *Agent) fireEvent(actionState ...interface{}) error {
 func (da *Agent) Eventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
 		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
-		da.OnEvent(eventFlag)
+		da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, args...)...)
 	}
 }
 
@@ -214,8 +214,8 @@ func (da *Agent) writeEventMessageWithOutput(output loggerOutputWithTimeSource, 
 		return err
 	}
 
-	output(timeSource, "%s %s", da.writer.Colorize(string(eventFlag), labelColor), fmt.Sprintf(format, actionState[4:]...))
-	return nil
+	_, err = output(timeSource, "%s %s", da.writer.Colorize(string(eventFlag), labelColor), fmt.Sprintf(format, actionState[4:]...))
+	return err
 }
 
 // Infof logs an informational message to the output stream.

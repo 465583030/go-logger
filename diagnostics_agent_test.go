@@ -223,15 +223,18 @@ func TestAgentOnEventUnflagged(t *testing.T) {
 func TestAgentEventf(t *testing.T) {
 	assert := assert.New(t)
 
-	buffer := bytes.NewBuffer([]byte{})
+	buffer := bytes.NewBuffer(nil)
 	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
 	defer da.Close()
+
+	assert.True(da.IsEnabled(EventInfo))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
+		time.Sleep(100 * time.Microsecond)
 	})
 
 	da.Eventf(EventInfo, ColorWhite, "%s World", "Hello")
@@ -244,16 +247,19 @@ func TestAgentEventf(t *testing.T) {
 func TestAgentErrorf(t *testing.T) {
 	assert := assert.New(t)
 
-	stdout := bytes.NewBuffer([]byte{})
-	stderr := bytes.NewBuffer([]byte{})
+	stdout := bytes.NewBuffer(nil)
+	stderr := bytes.NewBuffer(nil)
 	da := New(NewEventFlagSetAll(), NewLogWriter(stdout, stderr))
 	defer da.Close()
+
+	assert.True(da.IsEnabled(EventInfo))
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
+		time.Sleep(100 * time.Microsecond)
 	})
 
 	da.Errorf("%s World", "Hello")
