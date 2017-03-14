@@ -23,6 +23,22 @@ func logged(handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func stdoutLogged(handler http.HandlerFunc) http.HandlerFunc {
+	return func(res http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		handler(res, req)
+		fmt.Printf("%s %s %s %s %s %s %s\n",
+			time.Now().UTC().Format(time.RFC3339),
+			"web.request",
+			req.Method,
+			req.URL.Path,
+			"200",
+			time.Since(start).String(),
+			"??",
+		)
+	}
+}
+
 func indexHandler(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 	res.Write([]byte(`{"status":"ok!"}`))
@@ -87,10 +103,15 @@ func main() {
 	})
 
 	http.HandleFunc("/", logged(indexHandler))
+
 	http.HandleFunc("/fatalerror", logged(fatalErrorHandler))
 	http.HandleFunc("/error", logged(errorHandler))
 	http.HandleFunc("/warning", logged(warningHandler))
 	http.HandleFunc("/post", logged(postHandler))
+
+	http.HandleFunc("/bench/logged", logged(indexHandler))
+	http.HandleFunc("/bench/stdout", stdoutLogged(indexHandler))
+
 	logger.Default().Infof("Listening on :%s", port())
 	logger.Default().Infof("Events %s", logger.Default().Events().String())
 	log.Fatal(http.ListenAndServe(":"+port(), nil))
