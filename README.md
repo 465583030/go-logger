@@ -1,7 +1,7 @@
 Go Logger
 =========
 
-Go logger is not well named. It's really an event queue that is managed by a bitmask flag set.
+Go logger is not well named. It's really an event queue that is managed by a hashset of event names.
 
 # Example
 
