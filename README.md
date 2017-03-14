@@ -7,7 +7,7 @@ Go logger is not well named. It's really an event queue that is managed by a has
 
 ```golang
 logger.SetDefault(logger.NewAgentFromEnvironment()) // set the singleton to a environment configured default.
-logger.Default().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, e uint64, args ...interface{}) {
+logger.Default().AddEventListener(logger.EventError, func(wr logger.Logger, ts logger.TimeSource, flag logger.EventFlag, args ...interface{}) {
     //ping an external service?
     //log something to the db?
     //this action will be handled by a separate go-routine
