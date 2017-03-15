@@ -70,10 +70,11 @@ func NewFromEnvironment() *Agent {
 
 // Agent is a handler for various logging events with descendent handlers.
 type Agent struct {
-	writer         Logger
-	events         *EventFlagSet
-	eventListeners map[EventFlag][]EventListener
-	eventQueue     *workqueue.Queue
+	writer             Logger
+	events             *EventFlagSet
+	eventListenersLock sync.Mutex
+	eventListeners     map[EventFlag][]EventListener
+	eventQueue         *workqueue.Queue
 }
 
 // Writer returns the inner Logger for the diagnostics agent.
@@ -131,7 +132,9 @@ func (da *Agent) HasListener(event EventFlag) bool {
 
 // AddEventListener adds a listener for errors.
 func (da *Agent) AddEventListener(eventFlag EventFlag, listener EventListener) {
+	da.eventListenersLock.Lock()
 	da.eventListeners[eventFlag] = append(da.eventListeners[eventFlag], listener)
+	da.eventListenersLock.Unlock()
 }
 
 // RemoveListeners clears *all* listeners for an EventFlag.
@@ -165,7 +168,10 @@ func (da *Agent) fireEvent(actionState ...interface{}) error {
 		return err
 	}
 
+	da.eventListenersLock.Lock()
 	listeners := da.eventListeners[eventFlag]
+	da.eventListenersLock.Unlock()
+
 	for x := 0; x < len(listeners); x++ {
 		listener := listeners[x]
 		listener(da.writer, timeSource, eventFlag, actionState[2:]...)
