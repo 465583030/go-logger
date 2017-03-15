@@ -108,11 +108,17 @@ func (da *Agent) DisableEvent(eventFlag EventFlag) {
 
 // IsEnabled asserts if a flag value is set or not.
 func (da *Agent) IsEnabled(flagValue EventFlag) bool {
+	if da == nil {
+		return false
+	}
 	return da.events.IsEnabled(flagValue)
 }
 
 // HasListener returns if there are registered listener for an event.
 func (da *Agent) HasListener(event EventFlag) bool {
+	if da == nil {
+		return false
+	}
 	if da.eventListeners == nil {
 		return false
 	}
@@ -135,6 +141,9 @@ func (da *Agent) RemoveListeners(eventFlag EventFlag) {
 
 // OnEvent fires the currently configured event listeners.
 func (da *Agent) OnEvent(eventFlag EventFlag, state ...interface{}) {
+	if da == nil {
+		return
+	}
 	if da.IsEnabled(eventFlag) && da.HasListener(eventFlag) {
 		da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, state...)...)
 	}
