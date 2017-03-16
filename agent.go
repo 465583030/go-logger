@@ -245,7 +245,7 @@ func (da *Agent) Debugf(format string, args ...interface{}) {
 
 // DebugDump dumps an object and fires a debug event.
 func (da *Agent) DebugDump(object interface{}) {
-	da.Eventf(EventDebug, ColorLightYellow, "%v", object)
+	da.Eventf(EventDebug, ColorLightYellow, "%#v", object)
 }
 
 // Warningf logs a debug message to the output stream.
@@ -259,7 +259,7 @@ func (da *Agent) Warningf(format string, args ...interface{}) error {
 // Warning logs a warning error to std err.
 func (da *Agent) Warning(err error) error {
 	if err != nil {
-		da.ErrorEventf(EventWarning, ColorYellow, err.Error())
+		da.ErrorEventf(EventWarning, ColorYellow, fmt.Sprintf("%+v", err))
 		da.OnEvent(EventWarning, err)
 	}
 	return err
@@ -276,7 +276,7 @@ func (da *Agent) Errorf(format string, args ...interface{}) error {
 // Fatal logs an error to std err.
 func (da *Agent) Error(err error) error {
 	if err != nil {
-		da.ErrorEventf(EventError, ColorRed, err.Error())
+		da.ErrorEventf(EventError, ColorRed, fmt.Sprintf("%+v", err))
 		da.OnEvent(EventError, err)
 	}
 	return err
@@ -285,7 +285,7 @@ func (da *Agent) Error(err error) error {
 // ErrorWithReq logs an error to std err with a request.
 func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
 	if err != nil {
-		da.ErrorEventf(EventError, ColorRed, err.Error())
+		da.ErrorEventf(EventError, ColorRed, fmt.Sprintf("%+v", err))
 		da.OnEvent(EventError, err, req)
 	}
 	return err
@@ -302,7 +302,7 @@ func (da *Agent) Fatalf(format string, args ...interface{}) error {
 // Fatal logs the result of a panic to std err.
 func (da *Agent) Fatal(err error) error {
 	if err != nil {
-		da.ErrorEventf(EventFatalError, ColorRed, err.Error())
+		da.ErrorEventf(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
 		da.OnEvent(EventFatalError, err)
 	}
 	return err
@@ -311,7 +311,7 @@ func (da *Agent) Fatal(err error) error {
 // FatalWithReq logs the result of a fatal error to std err with a request.
 func (da *Agent) FatalWithReq(err error, req *http.Request) error {
 	if err != nil {
-		da.ErrorEventf(EventFatalError, ColorRed, err.Error())
+		da.ErrorEventf(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
 		da.OnEvent(EventFatalError, err, req)
 	}
 	return err
