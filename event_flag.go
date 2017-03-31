@@ -21,6 +21,8 @@ const (
 	EventDebug EventFlag = "debug"
 	// EventInfo fires for informational messages (app startup etc.)
 	EventInfo EventFlag = "info"
+	// EventSilly fires for anything else.
+	EventSilly EventFlag = "silly"
 
 	// EventWebRequestStart fires when an app starts handling a request.
 	EventWebRequestStart EventFlag = "web.request.start"
@@ -30,11 +32,6 @@ const (
 	EventWebRequestPostBody EventFlag = "web.request.postbody"
 	// EventWebResponse fires to provide the raw response to a request.
 	EventWebResponse EventFlag = "web.response"
-	// EventWebUserError is a particular class of error caused by callers of a service.
-	EventWebUserError EventFlag = "web.usererror"
-
-	// EventWebInternalError is an alias to EventFatalError
-	EventWebInternalError = EventFatalError
 )
 
 // EventFlag is a flag to enable or disable triggering handlers for an event.

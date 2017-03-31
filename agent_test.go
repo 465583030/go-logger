@@ -273,7 +273,7 @@ func BenchmarkAgentIsEnabled(b *testing.B) {
 		for subIter := 0; subIter < 50; subIter++ {
 			da := New(NewEventFlagSetWithEvents(EventFatalError, EventError, EventWebRequest, EventInfo))
 			da.IsEnabled(EventFatalError)
-			da.IsEnabled(EventWebUserError)
+			da.IsEnabled(EventWebRequestPostBody)
 			da.IsEnabled(EventDebug)
 			da.IsEnabled(EventInfo)
 			da.IsEnabled(EventWebRequest)
