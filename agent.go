@@ -182,7 +182,7 @@ func (da *Agent) Warning(err error) error {
 	if da == nil {
 		return err
 	}
-	return da.ErrorEventWithState(EventWarning, err)
+	return da.ErrorEventWithState(EventWarning, ColorLightYellow, err)
 }
 
 // WarningWithReq logs a warning error to std err with a request.
@@ -190,7 +190,7 @@ func (da *Agent) WarningWithReq(err error, req *http.Request) error {
 	if da == nil {
 		return err
 	}
-	return da.ErrorEventWithState(EventWarning, err, req)
+	return da.ErrorEventWithState(EventWarning, ColorLightYellow, err, req)
 }
 
 // Errorf writes an event to the log and triggers event listeners.
@@ -206,7 +206,7 @@ func (da *Agent) Error(err error) error {
 	if da == nil {
 		return err
 	}
-	return da.ErrorEventWithState(EventError, err)
+	return da.ErrorEventWithState(EventError, ColorRed, err)
 }
 
 // ErrorWithReq logs an error to std err with a request.
@@ -214,7 +214,7 @@ func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
 	if da == nil {
 		return err
 	}
-	return da.ErrorEventWithState(EventError, err, req)
+	return da.ErrorEventWithState(EventError, ColorRed, err, req)
 }
 
 // Fatalf writes an event to the log and triggers event listeners.
@@ -230,7 +230,7 @@ func (da *Agent) Fatal(err error) error {
 	if da == nil {
 		return err
 	}
-	return da.ErrorEventWithState(EventFatalError, err)
+	return da.ErrorEventWithState(EventFatalError, ColorRed, err)
 }
 
 // FatalWithReq logs the result of a fatal error to std err with a request.
@@ -238,7 +238,7 @@ func (da *Agent) FatalWithReq(err error, req *http.Request) error {
 	if da == nil {
 		return err
 	}
-	return da.ErrorEventWithState(EventFatalError, err, req)
+	return da.ErrorEventWithState(EventFatalError, ColorRed, err, req)
 }
 
 // WriteEventf writes to the standard output and triggers events.
@@ -270,13 +270,13 @@ func (da *Agent) WriteErrorEventf(event EventFlag, color AnsiColorCode, format s
 }
 
 // ErrorEventWithState writes an error and triggers events with a given state.
-func (da *Agent) ErrorEventWithState(event EventFlag, err error, state ...interface{}) error {
+func (da *Agent) ErrorEventWithState(event EventFlag, color AnsiColorCode, err error, state ...interface{}) error {
 	if da == nil {
 		return err
 	}
 	if err != nil {
 		if da.IsEnabled(event) {
-			da.queueWriteError(event, ColorRed, fmt.Sprintf("%+v", err))
+			da.queueWriteError(event, color, "%+v", err)
 			if da.HasListener(event) {
 				da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), event, err}, state...)...)
 			}
