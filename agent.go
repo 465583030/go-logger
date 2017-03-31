@@ -147,27 +147,47 @@ func (da *Agent) OnEvent(eventFlag EventFlag, state ...interface{}) {
 
 // Infof logs an informational message to the output stream.
 func (da *Agent) Infof(format string, args ...interface{}) {
-	da.queueWrite(EventInfo, ColorWhite, format, args...)
+	if da.IsEnabled(EventInfo) {
+		da.queueWrite(EventInfo, ColorWhite, format, args...)
+
+		if da.HasListener(EventInfo) {
+			da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), EventInfo, format}, args...)...)
+		}
+	}
 }
 
 // Debugf logs a debug message to the output stream.
 func (da *Agent) Debugf(format string, args ...interface{}) {
-	da.queueWrite(EventDebug, ColorLightYellow, format, args...)
+	if da.IsEnabled(EventDebug) {
+		da.queueWrite(EventDebug, ColorLightYellow, format, args...)
+
+		if da.HasListener(EventDebug) {
+			da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), EventDebug, format}, args...)...)
+		}
+	}
 }
 
 // Warningf logs a debug message to the output stream.
 func (da *Agent) Warningf(format string, args ...interface{}) error {
 	err := fmt.Errorf(format, args...)
-	da.queueWriteError(EventWarning, ColorYellow, err.Error())
-	da.OnEvent(EventWarning, err)
+	if da.IsEnabled(EventWarning) {
+		da.queueWriteError(EventWarning, ColorRed, format, args...)
+		if da.HasListener(EventWarning) {
+			da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventWarning, err})
+		}
+	}
 	return err
 }
 
 // Warning logs a warning error to std err.
 func (da *Agent) Warning(err error) error {
 	if err != nil {
-		da.queueWriteError(EventWarning, ColorYellow, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventWarning, err)
+		if da.IsEnabled(EventWarning) {
+			da.queueWriteError(EventWarning, ColorRed, fmt.Sprintf("%+v", err))
+			if da.HasListener(EventWarning) {
+				da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventWarning, err})
+			}
+		}
 	}
 	return err
 }
@@ -175,8 +195,12 @@ func (da *Agent) Warning(err error) error {
 // WarningWithReq logs a warning error to std err with a request.
 func (da *Agent) WarningWithReq(err error, req *http.Request) error {
 	if err != nil {
-		da.queueWriteError(EventWarning, ColorYellow, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventWarning, err, req)
+		if da.IsEnabled(EventWarning) {
+			da.queueWriteError(EventWarning, ColorRed, fmt.Sprintf("%+v", err))
+			if da.HasListener(EventWarning) {
+				da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventWarning, err, req})
+			}
+		}
 	}
 	return err
 }
@@ -184,16 +208,24 @@ func (da *Agent) WarningWithReq(err error, req *http.Request) error {
 // Errorf writes an event to the log and triggers event listeners.
 func (da *Agent) Errorf(format string, args ...interface{}) error {
 	err := fmt.Errorf(format, args...)
-	da.queueWriteError(EventError, ColorRed, format, args...)
-	da.OnEvent(EventError, err)
+	if da.IsEnabled(EventError) {
+		da.queueWriteError(EventError, ColorRed, format, args...)
+		if da.HasListener(EventError) {
+			da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventError, err})
+		}
+	}
 	return err
 }
 
 // Fatal logs an error to std err.
 func (da *Agent) Error(err error) error {
 	if err != nil {
-		da.queueWriteError(EventError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventError, err)
+		if da.IsEnabled(EventError) {
+			da.queueWriteError(EventError, ColorRed, fmt.Sprintf("%+v", err))
+			if da.HasListener(EventError) {
+				da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventError, err})
+			}
+		}
 	}
 	return err
 }
@@ -201,8 +233,12 @@ func (da *Agent) Error(err error) error {
 // ErrorWithReq logs an error to std err with a request.
 func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
 	if err != nil {
-		da.queueWriteError(EventError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventError, err, req)
+		if da.IsEnabled(EventError) {
+			da.queueWriteError(EventError, ColorRed, fmt.Sprintf("%+v", err))
+			if da.HasListener(EventError) {
+				da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventError, err, req})
+			}
+		}
 	}
 	return err
 }
@@ -210,16 +246,24 @@ func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
 // Fatalf writes an event to the log and triggers event listeners.
 func (da *Agent) Fatalf(format string, args ...interface{}) error {
 	err := fmt.Errorf(format, args...)
-	da.queueWriteError(EventFatalError, ColorRed, format, args...)
-	da.OnEvent(EventFatalError, err)
+	if da.IsEnabled(EventFatalError) {
+		da.queueWriteError(EventFatalError, ColorRed, format, args...)
+		if da.HasListener(EventFatalError) {
+			da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventFatalError, err})
+		}
+	}
 	return err
 }
 
 // Fatal logs the result of a panic to std err.
 func (da *Agent) Fatal(err error) error {
 	if err != nil {
-		da.queueWriteError(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventFatalError, err)
+		if da.IsEnabled(EventFatalError) {
+			da.queueWriteError(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
+			if da.HasListener(EventFatalError) {
+				da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventFatalError, err})
+			}
+		}
 	}
 	return err
 }
@@ -227,8 +271,12 @@ func (da *Agent) Fatal(err error) error {
 // FatalWithReq logs the result of a fatal error to std err with a request.
 func (da *Agent) FatalWithReq(err error, req *http.Request) error {
 	if err != nil {
-		da.queueWriteError(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventFatalError, err, req)
+		if da.IsEnabled(EventFatalError) {
+			da.queueWriteError(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
+			if da.HasListener(EventFatalError) {
+				da.eventQueue.Enqueue(da.triggerListeners, []interface{}{TimeNow(), EventFatalError, err, req})
+			}
+		}
 	}
 	return err
 }
@@ -282,14 +330,14 @@ func (da *Agent) triggerListeners(actionState ...interface{}) error {
 
 // printf checks an event flag and writes a message with a given color.
 func (da *Agent) queueWrite(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
-	if da.IsEnabled(eventFlag) && len(format) > 0 {
+	if len(format) > 0 {
 		da.eventQueue.Enqueue(da.write, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 	}
 }
 
 // errorf checks an event flag and writes a message to the error stream (if one is configured) with a given color.
 func (da *Agent) queueWriteError(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
-	if da.IsEnabled(eventFlag) && len(format) > 0 {
+	if len(format) > 0 {
 		da.eventQueue.Enqueue(da.writeError, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 	}
 }
