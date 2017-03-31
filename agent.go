@@ -145,26 +145,19 @@ func (da *Agent) OnEvent(eventFlag EventFlag, state ...interface{}) {
 	}
 }
 
+// Sillyf logs an informational message to the output stream.
+func (da *Agent) Sillyf(format string, args ...interface{}) {
+	da.WriteEventf(EventSilly, ColorLightBlue, format, args...)
+}
+
 // Infof logs an informational message to the output stream.
 func (da *Agent) Infof(format string, args ...interface{}) {
-	if da.IsEnabled(EventInfo) {
-		da.queueWrite(EventInfo, ColorWhite, format, args...)
-
-		if da.HasListener(EventInfo) {
-			da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), EventInfo, format}, args...)...)
-		}
-	}
+	da.WriteEventf(EventInfo, ColorWhite, format, args...)
 }
 
 // Debugf logs a debug message to the output stream.
 func (da *Agent) Debugf(format string, args ...interface{}) {
-	if da.IsEnabled(EventDebug) {
-		da.queueWrite(EventDebug, ColorLightYellow, format, args...)
-
-		if da.HasListener(EventDebug) {
-			da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), EventDebug, format}, args...)...)
-		}
-	}
+	da.WriteEventf(EventDebug, ColorLightYellow, format, args...)
 }
 
 // Warningf logs a debug message to the output stream.
@@ -210,6 +203,28 @@ func (da *Agent) Fatal(err error) error {
 // FatalWithReq logs the result of a fatal error to std err with a request.
 func (da *Agent) FatalWithReq(err error, req *http.Request) error {
 	return da.ErrorEventWithState(EventFatalError, err, req)
+}
+
+// WriteEventf writes to the standard output and triggers events.
+func (da *Agent) WriteEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
+	if da.IsEnabled(event) {
+		da.queueWrite(event, ColorLightYellow, format, args...)
+
+		if da.HasListener(event) {
+			da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), event, format}, args...)...)
+		}
+	}
+}
+
+// WriteErrorEventf writes to the error output and triggers events.
+func (da *Agent) WriteErrorEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
+	if da.IsEnabled(event) {
+		da.queueWriteError(event, ColorLightYellow, format, args...)
+
+		if da.HasListener(event) {
+			da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), event, format}, args...)...)
+		}
+	}
 }
 
 // ErrorEventWithState writes an error and triggers events with a given state.
