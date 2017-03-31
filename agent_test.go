@@ -220,57 +220,7 @@ func TestAgentOnEventUnflagged(t *testing.T) {
 	da.OnEvent(EventError, "Hello", "World")
 }
 
-func TestAgentEventf(t *testing.T) {
-	assert := assert.New(t)
-
-	buffer := bytes.NewBuffer(nil)
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
-	defer da.Close()
-
-	assert.True(da.IsEnabled(EventInfo))
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
-		defer wg.Done()
-		time.Sleep(100 * time.Microsecond)
-	})
-
-	da.Eventf(EventInfo, ColorWhite, "%s World", "Hello")
-	wg.Wait()
-
-	assert.NotZero(buffer.Len())
-	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"), buffer.String())
-}
-
-func TestAgentErrorf(t *testing.T) {
-	assert := assert.New(t)
-
-	stdout := bytes.NewBuffer(nil)
-	stderr := bytes.NewBuffer(nil)
-	da := New(NewEventFlagSetAll(), NewLogWriter(stdout, stderr))
-	defer da.Close()
-
-	assert.True(da.IsEnabled(EventInfo))
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
-		defer wg.Done()
-		time.Sleep(100 * time.Microsecond)
-	})
-
-	da.Errorf("%s World", "Hello")
-	wg.Wait()
-
-	assert.Zero(stdout.Len())
-	assert.NotZero(stderr.Len())
-	assert.True(strings.HasSuffix(stderr.String(), "Hello World\n"), stderr.String())
-}
-
-func TestAgentFireEvent(t *testing.T) {
+func TestAgentTriggerListeners(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
@@ -283,7 +233,7 @@ func TestAgentFireEvent(t *testing.T) {
 		wr.WriteWithTimeSource(ts, []byte(fmt.Sprintf("Hello World")))
 	})
 
-	err := da.fireEvent(ts, EventInfo)
+	err := da.triggerListeners(ts, EventInfo)
 	assert.Nil(err)
 
 	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)), buffer.String())
@@ -300,7 +250,7 @@ func TestAgentWriteEventMessageWithOutput(t *testing.T) {
 	da.writer.SetUseAnsiColors(false)
 
 	ts := TimeInstance(time.Date(2016, 01, 02, 03, 04, 05, 06, time.UTC))
-	err := da.writeEventMessageWithOutput(da.writer.PrintfWithTimeSource, ts, EventFlag("test"), ColorWhite, "%s World", "Hello")
+	err := da.writeWithOutput(da.writer.PrintfWithTimeSource, ts, EventFlag("test"), ColorWhite, "%s World", "Hello")
 	assert.Nil(err)
 	assert.True(strings.HasPrefix(buffer.String(), time.Time(ts).Format(DefaultTimeFormat)))
 	assert.True(strings.HasSuffix(buffer.String(), "Hello World\n"))

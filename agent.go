@@ -40,13 +40,6 @@ func SetDefault(agent *Agent) {
 	_default = agent
 }
 
-func newEventQueue() *workqueue.Queue {
-	eq := workqueue.NewWithWorkers(DefaultAgentQueueWorkers)
-	eq.SetMaxWorkItems(DefaultAgentQueueLength) //more than this and queuing will block
-	eq.Start()
-	return eq
-}
-
 // New returns a new diagnostics with a given bitflag verbosity.
 func New(events *EventFlagSet, optionalWriter ...Logger) *Agent {
 	diag := &Agent{
@@ -148,12 +141,119 @@ func (da *Agent) OnEvent(eventFlag EventFlag, state ...interface{}) {
 		return
 	}
 	if da.IsEnabled(eventFlag) && da.HasListener(eventFlag) {
-		da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, state...)...)
+		da.eventQueue.Enqueue(da.triggerListeners, append([]interface{}{TimeNow(), eventFlag}, state...)...)
 	}
 }
 
-// OnEvent fires the currently configured event listeners.
-func (da *Agent) fireEvent(actionState ...interface{}) error {
+// Infof logs an informational message to the output stream.
+func (da *Agent) Infof(format string, args ...interface{}) {
+	da.queueWrite(EventInfo, ColorWhite, format, args...)
+}
+
+// Debugf logs a debug message to the output stream.
+func (da *Agent) Debugf(format string, args ...interface{}) {
+	da.queueWrite(EventDebug, ColorLightYellow, format, args...)
+}
+
+// Warningf logs a debug message to the output stream.
+func (da *Agent) Warningf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
+	da.queueWriteError(EventWarning, ColorYellow, err.Error())
+	da.OnEvent(EventWarning, err)
+	return err
+}
+
+// Warning logs a warning error to std err.
+func (da *Agent) Warning(err error) error {
+	if err != nil {
+		da.queueWriteError(EventWarning, ColorYellow, fmt.Sprintf("%+v", err))
+		da.OnEvent(EventWarning, err)
+	}
+	return err
+}
+
+// WarningWithReq logs a warning error to std err with a request.
+func (da *Agent) WarningWithReq(err error, req *http.Request) error {
+	if err != nil {
+		da.queueWriteError(EventWarning, ColorYellow, fmt.Sprintf("%+v", err))
+		da.OnEvent(EventWarning, err, req)
+	}
+	return err
+}
+
+// Errorf writes an event to the log and triggers event listeners.
+func (da *Agent) Errorf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
+	da.queueWriteError(EventError, ColorRed, format, args...)
+	da.OnEvent(EventError, err)
+	return err
+}
+
+// Fatal logs an error to std err.
+func (da *Agent) Error(err error) error {
+	if err != nil {
+		da.queueWriteError(EventError, ColorRed, fmt.Sprintf("%+v", err))
+		da.OnEvent(EventError, err)
+	}
+	return err
+}
+
+// ErrorWithReq logs an error to std err with a request.
+func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
+	if err != nil {
+		da.queueWriteError(EventError, ColorRed, fmt.Sprintf("%+v", err))
+		da.OnEvent(EventError, err, req)
+	}
+	return err
+}
+
+// Fatalf writes an event to the log and triggers event listeners.
+func (da *Agent) Fatalf(format string, args ...interface{}) error {
+	err := fmt.Errorf(format, args...)
+	da.queueWriteError(EventFatalError, ColorRed, format, args...)
+	da.OnEvent(EventFatalError, err)
+	return err
+}
+
+// Fatal logs the result of a panic to std err.
+func (da *Agent) Fatal(err error) error {
+	if err != nil {
+		da.queueWriteError(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
+		da.OnEvent(EventFatalError, err)
+	}
+	return err
+}
+
+// FatalWithReq logs the result of a fatal error to std err with a request.
+func (da *Agent) FatalWithReq(err error, req *http.Request) error {
+	if err != nil {
+		da.queueWriteError(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
+		da.OnEvent(EventFatalError, err, req)
+	}
+	return err
+}
+
+// Close releases shared resources for the agent.
+func (da *Agent) Close() error {
+	return da.eventQueue.Close()
+}
+
+// Drain waits for the agent to finish it's queue of events before closing.
+func (da *Agent) Drain() error {
+	da.SetVerbosity(NewEventFlagSetNone())
+
+	for da.eventQueue.Len() > 0 {
+		time.Sleep(time.Millisecond)
+	}
+	return da.Close()
+}
+
+// --------------------------------------------------------------------------------
+// internal methods
+// --------------------------------------------------------------------------------
+
+// triggerListeners triggers the currently configured event listeners.
+func (da *Agent) triggerListeners(actionState ...interface{}) error {
 	if len(actionState) < 2 {
 		return nil
 	}
@@ -180,31 +280,30 @@ func (da *Agent) fireEvent(actionState ...interface{}) error {
 	return nil
 }
 
-// Eventf checks an event flag and writes a message with a given color.
-func (da *Agent) Eventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
+// printf checks an event flag and writes a message with a given color.
+func (da *Agent) queueWrite(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
-		da.eventQueue.Enqueue(da.writeEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
-		da.eventQueue.Enqueue(da.fireEvent, append([]interface{}{TimeNow(), eventFlag}, args...)...)
+		da.eventQueue.Enqueue(da.write, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 	}
 }
 
-// ErrorEventf checks an event flag and writes a message to the error stream (if one is configured) with a given color.
-func (da *Agent) ErrorEventf(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
+// errorf checks an event flag and writes a message to the error stream (if one is configured) with a given color.
+func (da *Agent) queueWriteError(eventFlag EventFlag, color AnsiColorCode, format string, args ...interface{}) {
 	if da.IsEnabled(eventFlag) && len(format) > 0 {
-		da.eventQueue.Enqueue(da.writeErrorEventMessage, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
+		da.eventQueue.Enqueue(da.writeError, append([]interface{}{TimeNow(), eventFlag, color, format}, args...)...)
 	}
 }
 
-func (da *Agent) writeEventMessage(actionState ...interface{}) error {
-	return da.writeEventMessageWithOutput(da.writer.PrintfWithTimeSource, actionState...)
+func (da *Agent) write(actionState ...interface{}) error {
+	return da.writeWithOutput(da.writer.PrintfWithTimeSource, actionState...)
 }
 
-func (da *Agent) writeErrorEventMessage(actionState ...interface{}) error {
-	return da.writeEventMessageWithOutput(da.writer.ErrorfWithTimeSource, actionState...)
+func (da *Agent) writeError(actionState ...interface{}) error {
+	return da.writeWithOutput(da.writer.ErrorfWithTimeSource, actionState...)
 }
 
 // writeEventMessage writes an event message.
-func (da *Agent) writeEventMessageWithOutput(output loggerOutputWithTimeSource, actionState ...interface{}) error {
+func (da *Agent) writeWithOutput(output loggerOutputWithTimeSource, actionState ...interface{}) error {
 	if len(actionState) < 4 {
 		return nil
 	}
@@ -233,101 +332,9 @@ func (da *Agent) writeEventMessageWithOutput(output loggerOutputWithTimeSource, 
 	return err
 }
 
-// Infof logs an informational message to the output stream.
-func (da *Agent) Infof(format string, args ...interface{}) {
-	da.Eventf(EventInfo, ColorWhite, format, args...)
-}
-
-// Debugf logs a debug message to the output stream.
-func (da *Agent) Debugf(format string, args ...interface{}) {
-	da.Eventf(EventDebug, ColorLightYellow, format, args...)
-}
-
-// DebugDump dumps an object and fires a debug event.
-func (da *Agent) DebugDump(object interface{}) {
-	da.Eventf(EventDebug, ColorLightYellow, "%#v", object)
-}
-
-// Warningf logs a debug message to the output stream.
-func (da *Agent) Warningf(format string, args ...interface{}) error {
-	err := fmt.Errorf(format, args...)
-	da.ErrorEventf(EventWarning, ColorYellow, err.Error())
-	da.OnEvent(EventWarning, err)
-	return err
-}
-
-// Warning logs a warning error to std err.
-func (da *Agent) Warning(err error) error {
-	if err != nil {
-		da.ErrorEventf(EventWarning, ColorYellow, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventWarning, err)
-	}
-	return err
-}
-
-// Errorf writes an event to the log and triggers event listeners.
-func (da *Agent) Errorf(format string, args ...interface{}) error {
-	err := fmt.Errorf(format, args...)
-	da.ErrorEventf(EventError, ColorRed, format, args...)
-	da.OnEvent(EventError, err)
-	return err
-}
-
-// Fatal logs an error to std err.
-func (da *Agent) Error(err error) error {
-	if err != nil {
-		da.ErrorEventf(EventError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventError, err)
-	}
-	return err
-}
-
-// ErrorWithReq logs an error to std err with a request.
-func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
-	if err != nil {
-		da.ErrorEventf(EventError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventError, err, req)
-	}
-	return err
-}
-
-// Fatalf writes an event to the log and triggers event listeners.
-func (da *Agent) Fatalf(format string, args ...interface{}) error {
-	err := fmt.Errorf(format, args...)
-	da.ErrorEventf(EventFatalError, ColorRed, format, args...)
-	da.OnEvent(EventFatalError, err)
-	return err
-}
-
-// Fatal logs the result of a panic to std err.
-func (da *Agent) Fatal(err error) error {
-	if err != nil {
-		da.ErrorEventf(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventFatalError, err)
-	}
-	return err
-}
-
-// FatalWithReq logs the result of a fatal error to std err with a request.
-func (da *Agent) FatalWithReq(err error, req *http.Request) error {
-	if err != nil {
-		da.ErrorEventf(EventFatalError, ColorRed, fmt.Sprintf("%+v", err))
-		da.OnEvent(EventFatalError, err, req)
-	}
-	return err
-}
-
-// Close releases shared resources for the agent.
-func (da *Agent) Close() error {
-	return da.eventQueue.Close()
-}
-
-// Drain waits for the agent to finish it's queue of events before closing.
-func (da *Agent) Drain() error {
-	da.SetVerbosity(NewEventFlagSetNone())
-
-	for da.eventQueue.Len() > 0 {
-		time.Sleep(time.Millisecond)
-	}
-	return da.Close()
+func newEventQueue() *workqueue.Queue {
+	eq := workqueue.NewWithWorkers(DefaultAgentQueueWorkers)
+	eq.SetMaxWorkItems(DefaultAgentQueueLength) //more than this and queuing will block
+	eq.Start()
+	return eq
 }
