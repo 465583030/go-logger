@@ -147,66 +147,105 @@ func (da *Agent) OnEvent(eventFlag EventFlag, state ...interface{}) {
 
 // Sillyf logs an informational message to the output stream.
 func (da *Agent) Sillyf(format string, args ...interface{}) {
+	if da == nil {
+		return
+	}
 	da.WriteEventf(EventSilly, ColorLightBlue, format, args...)
 }
 
 // Infof logs an informational message to the output stream.
 func (da *Agent) Infof(format string, args ...interface{}) {
+	if da == nil {
+		return
+	}
 	da.WriteEventf(EventInfo, ColorWhite, format, args...)
 }
 
 // Debugf logs a debug message to the output stream.
 func (da *Agent) Debugf(format string, args ...interface{}) {
+	if da == nil {
+		return
+	}
 	da.WriteEventf(EventDebug, ColorLightYellow, format, args...)
 }
 
 // Warningf logs a debug message to the output stream.
 func (da *Agent) Warningf(format string, args ...interface{}) error {
+	if da == nil {
+		return nil
+	}
 	return da.Warning(fmt.Errorf(format, args...))
 }
 
 // Warning logs a warning error to std err.
 func (da *Agent) Warning(err error) error {
+	if da == nil {
+		return err
+	}
 	return da.ErrorEventWithState(EventWarning, err)
 }
 
 // WarningWithReq logs a warning error to std err with a request.
 func (da *Agent) WarningWithReq(err error, req *http.Request) error {
+	if da == nil {
+		return err
+	}
 	return da.ErrorEventWithState(EventWarning, err, req)
 }
 
 // Errorf writes an event to the log and triggers event listeners.
 func (da *Agent) Errorf(format string, args ...interface{}) error {
+	if da == nil {
+		return nil
+	}
 	return da.Error(fmt.Errorf(format, args...))
 }
 
 // Fatal logs an error to std err.
 func (da *Agent) Error(err error) error {
+	if da == nil {
+		return err
+	}
 	return da.ErrorEventWithState(EventError, err)
 }
 
 // ErrorWithReq logs an error to std err with a request.
 func (da *Agent) ErrorWithReq(err error, req *http.Request) error {
+	if da == nil {
+		return err
+	}
 	return da.ErrorEventWithState(EventError, err, req)
 }
 
 // Fatalf writes an event to the log and triggers event listeners.
 func (da *Agent) Fatalf(format string, args ...interface{}) error {
+	if da == nil {
+		return nil
+	}
 	return da.Fatal(fmt.Errorf(format, args...))
 }
 
 // Fatal logs the result of a panic to std err.
 func (da *Agent) Fatal(err error) error {
+	if da == nil {
+		return err
+	}
 	return da.ErrorEventWithState(EventFatalError, err)
 }
 
 // FatalWithReq logs the result of a fatal error to std err with a request.
 func (da *Agent) FatalWithReq(err error, req *http.Request) error {
+	if da == nil {
+		return err
+	}
 	return da.ErrorEventWithState(EventFatalError, err, req)
 }
 
 // WriteEventf writes to the standard output and triggers events.
 func (da *Agent) WriteEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
+	if da == nil {
+		return
+	}
 	if da.IsEnabled(event) {
 		da.queueWrite(event, ColorLightYellow, format, args...)
 
@@ -218,6 +257,9 @@ func (da *Agent) WriteEventf(event EventFlag, color AnsiColorCode, format string
 
 // WriteErrorEventf writes to the error output and triggers events.
 func (da *Agent) WriteErrorEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
+	if da == nil {
+		return
+	}
 	if da.IsEnabled(event) {
 		da.queueWriteError(event, ColorLightYellow, format, args...)
 
@@ -229,6 +271,9 @@ func (da *Agent) WriteErrorEventf(event EventFlag, color AnsiColorCode, format s
 
 // ErrorEventWithState writes an error and triggers events with a given state.
 func (da *Agent) ErrorEventWithState(event EventFlag, err error, state ...interface{}) error {
+	if da == nil {
+		return err
+	}
 	if err != nil {
 		if da.IsEnabled(event) {
 			da.queueWriteError(event, ColorRed, fmt.Sprintf("%+v", err))
