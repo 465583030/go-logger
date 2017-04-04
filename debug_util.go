@@ -30,7 +30,7 @@ func DebugPrintAverageLatency(agent *Agent) {
 					debugLatencies = []time.Duration{}
 					debugLatenciesLock.Unlock()
 					if averageLatency != time.Duration(0) {
-						agent.Debugf("%s average event queue latency (%v)", agent.Writer().Label(), averageLatency)
+						agent.Debugf("average event queue latency (%v)", averageLatency)
 					}
 				}
 			}
