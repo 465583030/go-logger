@@ -46,6 +46,7 @@ func New(events *EventFlagSet, optionalWriter ...Logger) *Agent {
 		events:         events,
 		eventQueue:     newEventQueue(),
 		eventListeners: map[EventFlag][]EventListener{},
+		debugListeners: []EventListener{},
 	}
 
 	if len(optionalWriter) > 0 {
@@ -67,6 +68,7 @@ type Agent struct {
 	events             *EventFlagSet
 	eventListenersLock sync.Mutex
 	eventListeners     map[EventFlag][]EventListener
+	debugListeners     []EventListener
 	eventQueue         *workqueue.Queue
 }
 
@@ -127,6 +129,13 @@ func (da *Agent) HasListener(event EventFlag) bool {
 func (da *Agent) AddEventListener(eventFlag EventFlag, listener EventListener) {
 	da.eventListenersLock.Lock()
 	da.eventListeners[eventFlag] = append(da.eventListeners[eventFlag], listener)
+	da.eventListenersLock.Unlock()
+}
+
+// AddDebugListener adds a listener that will fire on *all* events.
+func (da *Agent) AddDebugListener(listener EventListener) {
+	da.eventListenersLock.Lock()
+	da.debugListeners = append(da.debugListeners, listener)
 	da.eventListenersLock.Unlock()
 }
 
@@ -327,6 +336,13 @@ func (da *Agent) triggerListeners(actionState ...interface{}) error {
 	for x := 0; x < len(listeners); x++ {
 		listener := listeners[x]
 		listener(da.writer, timeSource, eventFlag, actionState[2:]...)
+	}
+
+	if len(da.debugListeners) > 0 {
+		for x := 0; x < len(da.debugListeners); x++ {
+			listener := da.debugListeners[x]
+			listener(da.writer, timeSource, eventFlag, actionState[2:]...)
+		}
 	}
 
 	return nil
