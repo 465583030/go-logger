@@ -19,15 +19,21 @@ func DebugPrintAverageLatency(agent *Agent) {
 	})
 
 	var averageLatency time.Duration
-	poll := time.NewTicker(1 * time.Second)
-	select {
-	case <-poll.C:
-		{
-			debugLatenciesLock.Lock()
-			averageLatency = MeanOfDuration(debugLatencies)
-			debugLatencies = []time.Duration{}
-			debugLatenciesLock.Unlock()
-			agent.Debugf("average event queue latency (%v)", averageLatency)
+	poll := time.NewTicker(5 * time.Second)
+	go func() {
+		for {
+			select {
+			case <-poll.C:
+				{
+					debugLatenciesLock.Lock()
+					averageLatency = MeanOfDuration(debugLatencies)
+					debugLatencies = []time.Duration{}
+					debugLatenciesLock.Unlock()
+					if averageLatency != time.Duration(0) {
+						agent.Debugf("%s average event queue latency (%v)", agent.Writer().Label(), averageLatency)
+					}
+				}
+			}
 		}
-	}
+	}()
 }
