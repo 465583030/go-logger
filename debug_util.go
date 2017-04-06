@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+const (
+	// EventAverageQueueLatency is an event that fires when we collect average queue latencies.
+	EventAverageQueueLatency EventFlag = "queue_latency"
+)
+
 // DebugPrintAverageLatency prints the average queue latency for an agent.
 func DebugPrintAverageLatency(agent *Agent) {
 	var (
@@ -12,6 +17,7 @@ func DebugPrintAverageLatency(agent *Agent) {
 		debugLatencies     = []time.Duration{}
 	)
 
+	agent.EnableEvent(EventAverageQueueLatency)
 	agent.AddDebugListener(func(_ Logger, ts TimeSource, _ EventFlag, _ ...interface{}) {
 		debugLatenciesLock.Lock()
 		debugLatencies = append(debugLatencies, time.Now().UTC().Sub(ts.UTCNow()))
@@ -30,7 +36,7 @@ func DebugPrintAverageLatency(agent *Agent) {
 					debugLatencies = []time.Duration{}
 					debugLatenciesLock.Unlock()
 					if averageLatency != time.Duration(0) {
-						agent.Debugf("average event queue latency (%v)", averageLatency)
+						agent.WriteEventf(EventAverageQueueLatency, ColorLightBlack, "%v", averageLatency)
 					}
 				}
 			}
