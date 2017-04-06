@@ -32,10 +32,12 @@ func DebugPrintAverageLatency(agent *Agent) {
 	)
 
 	agent.EnableEvent(EventAverageQueueLatency)
-	agent.AddDebugListener(func(_ Logger, ts TimeSource, _ EventFlag, _ ...interface{}) {
-		debugLatenciesLock.Lock()
-		debugLatencies = append(debugLatencies, time.Now().UTC().Sub(ts.UTCNow()))
-		debugLatenciesLock.Unlock()
+	agent.AddDebugListener(func(_ Logger, ts TimeSource, ef EventFlag, _ ...interface{}) {
+		if ef != EventAverageQueueLatency {
+			debugLatenciesLock.Lock()
+			debugLatencies = append(debugLatencies, time.Now().UTC().Sub(ts.UTCNow()))
+			debugLatenciesLock.Unlock()
+		}
 	})
 
 	var averageLatency time.Duration
