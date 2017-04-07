@@ -65,6 +65,7 @@ func NewFromEnvironment() *Agent {
 // Agent is a handler for various logging events with descendent handlers.
 type Agent struct {
 	writer             Logger
+	eventsLock         sync.Mutex
 	events             *EventFlagSet
 	eventListenersLock sync.Mutex
 	eventListeners     map[EventFlag][]EventListener
@@ -89,17 +90,23 @@ func (da *Agent) Events() *EventFlagSet {
 
 // SetVerbosity sets the agent verbosity synchronously.
 func (da *Agent) SetVerbosity(events *EventFlagSet) {
+	da.eventsLock.Lock()
 	da.events = events
+	da.eventsLock.Unlock()
 }
 
 // EnableEvent flips the bit flag for a given event.
 func (da *Agent) EnableEvent(eventFlag EventFlag) {
+	da.eventsLock.Lock()
 	da.events.Enable(eventFlag)
+	da.eventsLock.Unlock()
 }
 
 // DisableEvent flips the bit flag for a given event.
 func (da *Agent) DisableEvent(eventFlag EventFlag) {
+	da.eventsLock.Lock()
 	da.events.Disable(eventFlag)
+	da.eventsLock.Unlock()
 }
 
 // IsEnabled asserts if a flag value is set or not.
@@ -107,7 +114,10 @@ func (da *Agent) IsEnabled(flagValue EventFlag) bool {
 	if da == nil {
 		return false
 	}
-	return da.events.IsEnabled(flagValue)
+	da.eventsLock.Lock()
+	enabled := da.events.IsEnabled(flagValue)
+	da.eventsLock.Unlock()
+	return enabled
 }
 
 // HasListener returns if there are registered listener for an event.
