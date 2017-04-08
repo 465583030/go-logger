@@ -62,6 +62,11 @@ func NewFromEnvironment() *Agent {
 	return New(NewEventFlagSetFromEnvironment(), NewLogWriterFromEnvironment())
 }
 
+// None returns a valid agent that won't fire any events.
+func None() *Agent {
+	return New(NewEventFlagSetNone())
+}
+
 // Agent is a handler for various logging events with descendent handlers.
 type Agent struct {
 	writer             Logger
