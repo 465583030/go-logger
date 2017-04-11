@@ -90,6 +90,9 @@ func (da *Agent) EventQueue() *workqueue.Queue {
 
 // Events returns the EventFlagSet
 func (da *Agent) Events() *EventFlagSet {
+	if da == nil {
+		return nil
+	}
 	return da.events
 }
 

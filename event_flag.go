@@ -113,33 +113,51 @@ type EventFlagSet struct {
 
 // Enable enables an event flag.
 func (efs *EventFlagSet) Enable(flagValue EventFlag) {
+	if efs == nil {
+		return
+	}
 	efs.none = false
 	efs.flags[flagValue] = true
 }
 
 // Disable disabled an event flag.
 func (efs *EventFlagSet) Disable(flagValue EventFlag) {
+	if efs == nil {
+		return
+	}
 	efs.flags[flagValue] = false
 }
 
 // EnableAll flips the `all` bit on the flag set.
 func (efs *EventFlagSet) EnableAll() {
+	if efs == nil {
+		return
+	}
 	efs.all = true
 	efs.none = false
 }
 
 // IsAllEnabled returns if the all bit is flipped on.
 func (efs *EventFlagSet) IsAllEnabled() bool {
+	if efs == nil {
+		return false
+	}
 	return efs.all
 }
 
 // IsNoneEnabled returns if the none bit is flipped on.
 func (efs *EventFlagSet) IsNoneEnabled() bool {
+	if efs == nil {
+		return true
+	}
 	return efs.none
 }
 
 // DisableAll flips the `none` bit on the flag set.
 func (efs *EventFlagSet) DisableAll() {
+	if efs == nil {
+		return
+	}
 	efs.all = false
 	efs.none = true
 }
@@ -156,8 +174,10 @@ func (efs EventFlagSet) IsEnabled(flagValue EventFlag) bool {
 	if efs.none {
 		return false
 	}
-	if enabled, hasFlag := efs.flags[flagValue]; hasFlag {
-		return enabled
+	if efs.flags != nil {
+		if enabled, hasFlag := efs.flags[flagValue]; hasFlag {
+			return enabled
+		}
 	}
 	return false
 }
