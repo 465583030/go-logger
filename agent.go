@@ -62,6 +62,11 @@ func NewFromEnvironment() *Agent {
 	return New(NewEventFlagSetFromEnvironment(), NewLogWriterFromEnvironment())
 }
 
+// All returns a valid agent that fires all events.
+func All(optionalWriter ...Logger) *Agent {
+	return New(NewEventFlagSetAll(), optionalWriter...)
+}
+
 // None returns a valid agent that won't fire any events.
 func None() *Agent {
 	return New(NewEventFlagSetNone())
@@ -260,7 +265,9 @@ func (da *Agent) FatalWithReq(err error, req *http.Request) error {
 	return da.ErrorEventWithState(EventFatalError, ColorRed, err, req)
 }
 
+// --------------------------------------------------------------------------------
 // meta methods
+// --------------------------------------------------------------------------------
 
 // WriteEventf writes to the standard output and triggers events.
 func (da *Agent) WriteEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
@@ -310,64 +317,9 @@ func (da *Agent) ErrorEventWithState(event EventFlag, color AnsiColorCode, err e
 // synchronous methods
 // --------------------------------------------------------------------------------
 
-// Infof logs an informational message to the output stream.
-func (da *Agent) SyncInfof(format string, args ...interface{}) {
-	if da == nil {
-		return
-	}
-	da.SyncWriteEventf(EventInfo, ColorWhite, format, args...)
-}
-
-// Debugf logs a debug message to the output stream.
-func (da *Agent) SyncDebugf(format string, args ...interface{}) {
-	if da == nil {
-		return
-	}
-	da.SyncWriteEventf(EventDebug, ColorLightYellow, format, args...)
-}
-
-// SyncWriteEventf writes to the standard output and triggers events.
-func (da *Agent) SyncWriteEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
-	if da == nil {
-		return
-	}
-	if da.IsEnabled(event) {
-		da.write(append([]interface{}{event, ColorLightYellow, format}, args...))
-
-		if da.HasListener(event) {
-			da.triggerListeners(append([]interface{}{TimeNow(), event, format}, args...)...)
-		}
-	}
-}
-
-// WriteErrorEventf writes to the error output and triggers events.
-func (da *Agent) SyncWriteErrorEventf(event EventFlag, color AnsiColorCode, format string, args ...interface{}) {
-	if da == nil {
-		return
-	}
-	if da.IsEnabled(event) {
-		da.writeError(append([]interface{}{event, ColorLightYellow, format}, args...))
-
-		if da.HasListener(event) {
-			da.triggerListeners(append([]interface{}{TimeNow(), event, format}, args...)...)
-		}
-	}
-}
-
-// ErrorEventWithState writes an error and triggers events with a given state.
-func (da *Agent) SyncErrorEventWithState(event EventFlag, color AnsiColorCode, err error, state ...interface{}) error {
-	if da == nil {
-		return err
-	}
-	if err != nil {
-		if da.IsEnabled(event) {
-			da.writeError([]interface{}{event, ColorLightYellow, "%+v", err)
-			if da.HasListener(event) {
-				da.triggerListeners(append([]interface{}{TimeNow(), event, err}, state...)...)
-			}
-		}
-	}
-	return err
+// Sync returns a synchronous agent.
+func (da *Agent) Sync() *SyncAgent {
+	return &SyncAgent{a: da}
 }
 
 // --------------------------------------------------------------------------------
