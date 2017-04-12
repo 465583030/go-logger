@@ -151,3 +151,16 @@ func (sa *SyncAgent) ErrorEventWithState(event EventFlag, color AnsiColorCode, e
 	}
 	return err
 }
+
+// OnEvent fires the currently configured event listeners.
+func (sa *SyncAgent) OnEvent(eventFlag EventFlag, state ...interface{}) {
+	if sa == nil {
+		return
+	}
+	if sa.a == nil {
+		return
+	}
+	if sa.a.IsEnabled(eventFlag) && sa.a.HasListener(eventFlag) {
+		sa.a.triggerListeners(append([]interface{}{TimeNow(), eventFlag}, state...)...)
+	}
+}

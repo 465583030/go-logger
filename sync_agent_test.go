@@ -68,3 +68,15 @@ func TestSyncAgentErrorf(t *testing.T) {
 	a.Sync().Errorf("this is a %s", "test")
 	assert.Equal("error this is a test\n", buffer.String())
 }
+
+func TestSyncAgentOnEvent(t *testing.T) {
+	assert := assert.New(t)
+
+	a := None()
+	a.EnableEvent(EventFlag("foo"))
+	a.AddEventListener(EventFlag("foo"), func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+		assert.NotEmpty(state)
+		assert.Equal("bar", state[0])
+	})
+	a.OnEvent("foo", "bar")
+}
