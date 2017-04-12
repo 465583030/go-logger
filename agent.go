@@ -68,8 +68,8 @@ func All(optionalWriter ...Logger) *Agent {
 }
 
 // None returns a valid agent that won't fire any events.
-func None() *Agent {
-	return New(NewEventFlagSetNone())
+func None(optionalWriter ...Logger) *Agent {
+	return New(NewEventFlagSetNone(), optionalWriter...)
 }
 
 // Agent is a handler for various logging events with descendent handlers.
