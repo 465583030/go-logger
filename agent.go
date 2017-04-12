@@ -225,7 +225,7 @@ func (da *Agent) Errorf(format string, args ...interface{}) error {
 	return da.Error(fmt.Errorf(format, args...))
 }
 
-// Fatal logs an error to std err.
+// Error logs an error to std err.
 func (da *Agent) Error(err error) error {
 	if da == nil {
 		return err

@@ -40,3 +40,31 @@ func TestSyncAgentDebugf(t *testing.T) {
 	a.Sync().Debugf("this is a %s", "test")
 	assert.Equal("debug this is a test\n", buffer.String())
 }
+
+func TestSyncAgentWarningf(t *testing.T) {
+	assert := assert.New(t)
+
+	buffer := bytes.NewBuffer(nil)
+	a := None(NewLogWriter(buffer))
+	a.EnableEvent(EventWarning)
+	a.Writer().SetShowTimestamp(false)
+	a.Writer().SetShowLabel(false)
+	a.Writer().SetUseAnsiColors(false)
+	a.Sync().Infof("this is a %s", "test")
+	a.Sync().Warningf("this is a %s", "test")
+	assert.Equal("warning this is a test\n", buffer.String())
+}
+
+func TestSyncAgentErrorf(t *testing.T) {
+	assert := assert.New(t)
+
+	buffer := bytes.NewBuffer(nil)
+	a := None(NewLogWriter(buffer))
+	a.EnableEvent(EventError)
+	a.Writer().SetShowTimestamp(false)
+	a.Writer().SetShowLabel(false)
+	a.Writer().SetUseAnsiColors(false)
+	a.Sync().Infof("this is a %s", "test")
+	a.Sync().Errorf("this is a %s", "test")
+	assert.Equal("error this is a test\n", buffer.String())
+}
