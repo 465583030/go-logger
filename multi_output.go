@@ -6,7 +6,7 @@ import (
 )
 
 // NewMultiOutputFromEnvironment creates a new multiplexed stdout writer.
-func NewMultiOutputFromEnvironment() io.WriteCloser {
+func NewMultiOutputFromEnvironment() io.Writer {
 	primary := os.Stdout
 	filePath := os.Getenv(EnvironmentVariableLogOutFile)
 	if len(filePath) > 0 {
@@ -25,7 +25,7 @@ func NewMultiOutputFromEnvironment() io.WriteCloser {
 }
 
 // NewErrorMultiOutputFromEnvironment creates a new multiplexed stderr writer.
-func NewErrorMultiOutputFromEnvironment() io.WriteCloser {
+func NewErrorMultiOutputFromEnvironment() io.Writer {
 	primary := os.Stderr
 	filePath := os.Getenv(EnvironmentVariableLogErrFile)
 	if len(filePath) > 0 {

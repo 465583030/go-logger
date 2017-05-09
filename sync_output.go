@@ -6,7 +6,7 @@ import (
 )
 
 // NewSyncOutput returns a new interlocked writer.
-func NewSyncOutput(output io.Writer) io.WriteCloser {
+func NewSyncOutput(output io.Writer) io.Writer {
 	return &SyncOutput{
 		output:   output,
 		syncRoot: &sync.Mutex{},
@@ -27,6 +27,8 @@ func (so *SyncOutput) Write(buffer []byte) (int, error) {
 	return so.output.Write(buffer)
 }
 
+/* experimental; we cannot close stdout or stderr
+otherwise the program crashes
 // Close is a no-op.
 func (so SyncOutput) Close() error {
 	if closer, isCloser := so.output.(io.Closer); isCloser {
@@ -35,4 +37,4 @@ func (so SyncOutput) Close() error {
 		return closer.Close()
 	}
 	return nil
-}
+}*/

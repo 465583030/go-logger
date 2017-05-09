@@ -57,7 +57,7 @@ func TestNewAgentFromEnvironment(t *testing.T) {
 	assert.NotNil(da.Events())
 	assert.True(da.Writer().UseAnsiColors())
 	assert.True(da.Writer().ShowTimestamp())
-	assert.True(da.Writer().ShowLabel())
+	assert.False(da.Writer().ShowLabel())
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
@@ -86,7 +86,7 @@ func TestNewAgentFromEnvironmentCustomVerbosity(t *testing.T) {
 	assert.False(da.IsEnabled(EventFatalError))
 	assert.True(da.Writer().UseAnsiColors())
 	assert.True(da.Writer().ShowTimestamp())
-	assert.True(da.Writer().ShowLabel())
+	assert.False(da.Writer().ShowLabel())
 	assert.Equal("Testing Harness", da.Writer().Label())
 }
 
