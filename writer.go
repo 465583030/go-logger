@@ -62,6 +62,45 @@ func NewWriterFromEnvironment() *Writer {
 	}
 }
 
+// NewWriterToFile creates a new writer that writes to stdout + stderr and a file.
+func NewWriterToFile(path string) *Writer {
+	fileoutput, err := NewFileOutputWithDefaults(path)
+	if err != nil {
+		panic(err)
+	}
+	return &Writer{
+		Output:        NewMultiOutput(NewSyncOutput(os.Stdout), fileoutput),
+		useAnsiColors: envFlagIsSet(EnvironmentVariableUseAnsiColors, DefaultWriterUseAnsiColors),
+		showTimestamp: envFlagIsSet(EnvironmentVariableShowTimestamp, DefaultWriterShowTimestamp),
+		showLabel:     envFlagIsSet(EnvironmentVariableShowLabel, DefaultWriterShowLabel),
+		label:         os.Getenv(EnvironmentVariableLogLabel),
+		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
+	}
+}
+
+// NewWriterToFileWithError creates a new writer that writes to stdout + stderr and a file.
+func NewWriterToFileWithError(output, errorOutput string) *Writer {
+	fileOutput, err := NewFileOutputWithDefaults(output)
+	if err != nil {
+		panic(err)
+	}
+
+	fileErrorOutput, err := NewFileOutputWithDefaults(errorOutput)
+	if err != nil {
+		panic(err)
+	}
+
+	return &Writer{
+		Output:        NewMultiOutput(NewSyncOutput(os.Stdout), fileOutput),
+		ErrorOutput:   NewMultiOutput(NewSyncOutput(os.Stderr), fileErrorOutput),
+		useAnsiColors: envFlagIsSet(EnvironmentVariableUseAnsiColors, DefaultWriterUseAnsiColors),
+		showTimestamp: envFlagIsSet(EnvironmentVariableShowTimestamp, DefaultWriterShowTimestamp),
+		showLabel:     envFlagIsSet(EnvironmentVariableShowLabel, DefaultWriterShowLabel),
+		label:         os.Getenv(EnvironmentVariableLogLabel),
+		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
+	}
+}
+
 // Writer handles outputting logging events to given writer streams.
 type Writer struct {
 	Output      io.Writer
