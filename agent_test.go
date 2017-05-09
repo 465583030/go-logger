@@ -26,7 +26,7 @@ func TestNewAgent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := All(NewWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da)
@@ -107,8 +107,8 @@ func TestAgentEnableDisableEvent(t *testing.T) {
 func TestAgentVerbosity(t *testing.T) {
 	assert := assert.New(t)
 
-	da := New(NewEventFlagSetAll())
-	da.SetVerbosity(NewEventFlagSetWithEvents(EventInfo))
+	da := All()
+	da.SetVerbosity(NewEventFlagSet(EventInfo))
 	assert.True(da.IsEnabled(EventInfo))
 	assert.False(da.IsEnabled(EventWebRequest))
 }
@@ -119,7 +119,7 @@ func TestAgentAddEventListener(t *testing.T) {
 	da := New(NewEventFlagSetAll())
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
 	assert.True(da.IsEnabled(EventError))
 	assert.True(da.HasListener(EventError))
 }
@@ -128,14 +128,14 @@ func TestAgentOnEvent(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := All(NewWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 		assert.Equal(EventError, eventFlag)
 		assert.NotEmpty(state)
@@ -154,14 +154,14 @@ func TestAgentOnEventMultipleListeners(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := All(NewWriter(buffer))
 	defer da.Close()
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 		assert.Equal(EventError, eventFlag)
 		assert.NotEmpty(state)
@@ -169,7 +169,7 @@ func TestAgentOnEventMultipleListeners(t *testing.T) {
 		assert.Equal("Hello", state[0])
 		assert.Equal("World", state[1])
 	})
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		defer wg.Done()
 		assert.Equal(EventError, eventFlag)
 		assert.NotEmpty(state)
@@ -188,11 +188,11 @@ func TestAgentOnEventUnhandled(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := All(NewWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		assert.FailNow("The Error Handler shouldn't have fired")
 	})
 	assert.True(da.IsEnabled(EventError))
@@ -207,11 +207,11 @@ func TestAgentOnEventUnflagged(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetWithEvents(EventInfo, EventWebRequest), NewLogWriter(buffer))
+	da := NewWithWriter(NewEventFlagSet(EventInfo, EventWebRequest), NewWriter(buffer))
 	defer da.Close()
 
 	assert.NotNil(da.eventListeners)
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {
 		assert.FailNow("The Error Handler shouldn't have fired")
 	})
 	assert.False(da.IsEnabled(EventError))
@@ -224,12 +224,12 @@ func TestAgentTriggerListeners(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := NewWithWriter(NewEventFlagSetAll(), NewWriter(buffer))
 	defer da.Close()
 	da.writer.SetUseAnsiColors(false)
 
 	ts := TimeInstance(time.Date(2016, 01, 02, 03, 04, 05, 06, time.UTC))
-	da.AddEventListener(EventInfo, func(wr Logger, ts TimeSource, e EventFlag, state ...interface{}) {
+	da.AddEventListener(EventInfo, func(wr *Writer, ts TimeSource, e EventFlag, state ...interface{}) {
 		wr.WriteWithTimeSource(ts, []byte(fmt.Sprintf("Hello World")))
 	})
 
@@ -244,7 +244,7 @@ func TestAgentWriteEventMessageWithOutput(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	da := New(NewEventFlagSetAll(), NewLogWriter(buffer))
+	da := NewWithWriter(NewEventFlagSetAll(), NewWriter(buffer))
 	defer da.Close()
 
 	da.writer.SetUseAnsiColors(false)
@@ -260,8 +260,8 @@ func TestAgentRemoveListeners(t *testing.T) {
 	assert := assert.New(t)
 
 	da := New(NewEventFlagSetAll())
-	da.AddEventListener(EventError, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
-	da.AddEventListener(EventInfo, func(writer Logger, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
+	da.AddEventListener(EventError, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
+	da.AddEventListener(EventInfo, func(writer *Writer, ts TimeSource, eventFlag EventFlag, state ...interface{}) {})
 	da.RemoveListeners(EventError)
 
 	assert.False(da.HasListener(EventError))
@@ -271,7 +271,7 @@ func TestAgentRemoveListeners(t *testing.T) {
 func BenchmarkAgentIsEnabled(b *testing.B) {
 	for iter := 0; iter < b.N; iter++ {
 		for subIter := 0; subIter < 50; subIter++ {
-			da := New(NewEventFlagSetWithEvents(EventFatalError, EventError, EventWebRequest, EventInfo))
+			da := New(NewEventFlagSet(EventFatalError, EventError, EventWebRequest, EventInfo))
 			da.IsEnabled(EventFatalError)
 			da.IsEnabled(EventWebRequestPostBody)
 			da.IsEnabled(EventDebug)

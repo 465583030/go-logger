@@ -15,38 +15,55 @@ const (
 
 	// DefaultTimeFormat is the default time format.
 	DefaultTimeFormat = time.RFC3339
+
+	// DefaultWriterUseAnsiColors is a default setting for writers.
+	DefaultWriterUseAnsiColors = true
+	// DefaultWriterShowTimestamp is a default setting for writers.
+	DefaultWriterShowTimestamp = true
+	// DefaultWriterShowLabel is a default setting for writers.
+	DefaultWriterShowLabel = false
 )
 
-// NewLogWriterFromEnvironment initializes a log writer from the environment.
-func NewLogWriterFromEnvironment() *LogWriter {
-	return &LogWriter{
-		Output:        NewStdOutMultiWriterFromEnvironment(),
-		ErrorOutput:   NewStdErrMultiWriterFromEnvironment(),
-		useAnsiColors: envFlagIsSet(EnvironmentVariableUseAnsiColors, true),
-		showTimestamp: envFlagIsSet(EnvironmentVariableShowTimestamp, true),
-		showLabel:     envFlagIsSet(EnvironmentVariableShowLabel, true),
+// NewWriter returns a new writer with combined standard and error outputs.
+func NewWriter(output io.Writer) *Writer {
+	agent := &Writer{
+		Output:        NewSyncOutput(output),
+		useAnsiColors: DefaultWriterUseAnsiColors,
+		showTimestamp: DefaultWriterShowTimestamp,
+		showLabel:     DefaultWriterShowLabel,
+		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
+	}
+	return agent
+}
+
+// NewWriterWithError returns a new writer with a dedicated error output.
+func NewWriterWithError(output, errorOutput io.Writer) *Writer {
+	agent := &Writer{
+		Output:        NewSyncOutput(output),
+		ErrorOutput:   NewSyncOutput(errorOutput),
+		useAnsiColors: DefaultWriterUseAnsiColors,
+		showTimestamp: DefaultWriterShowTimestamp,
+		showLabel:     DefaultWriterShowLabel,
+		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
+	}
+	return agent
+}
+
+// NewWriterFromEnvironment initializes a log writer from the environment.
+func NewWriterFromEnvironment() *Writer {
+	return &Writer{
+		Output:        NewMultiOutputFromEnvironment(),
+		ErrorOutput:   NewErrorMultiOutputFromEnvironment(),
+		useAnsiColors: envFlagIsSet(EnvironmentVariableUseAnsiColors, DefaultWriterUseAnsiColors),
+		showTimestamp: envFlagIsSet(EnvironmentVariableShowTimestamp, DefaultWriterShowTimestamp),
+		showLabel:     envFlagIsSet(EnvironmentVariableShowLabel, DefaultWriterShowLabel),
 		label:         os.Getenv(EnvironmentVariableLogLabel),
 		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
 	}
 }
 
-// NewLogWriter returns a new writer.
-func NewLogWriter(output io.Writer, optionalErrorOutput ...io.Writer) *LogWriter {
-	agent := &LogWriter{
-		Output:        NewSyncWriter(output),
-		useAnsiColors: true,
-		showTimestamp: true,
-		showLabel:     false,
-		bufferPool:    NewBufferPool(DefaultBufferPoolSize),
-	}
-	if len(optionalErrorOutput) > 0 {
-		agent.ErrorOutput = optionalErrorOutput[0]
-	}
-	return agent
-}
-
-// LogWriter handles outputting logging events to given writer streams.
-type LogWriter struct {
+// Writer handles outputting logging events to given writer streams.
+type Writer struct {
 	Output      io.Writer
 	ErrorOutput io.Writer
 
@@ -61,7 +78,7 @@ type LogWriter struct {
 }
 
 // GetErrorOutput returns an io.Writer for the error stream.
-func (wr *LogWriter) GetErrorOutput() io.Writer {
+func (wr *Writer) GetErrorOutput() io.Writer {
 	if wr.ErrorOutput != nil {
 		return wr.ErrorOutput
 	}
@@ -69,7 +86,7 @@ func (wr *LogWriter) GetErrorOutput() io.Writer {
 }
 
 // Colorize (optionally) applies a color to a string.
-func (wr *LogWriter) Colorize(value string, color AnsiColorCode) string {
+func (wr *Writer) Colorize(value string, color AnsiColorCode) string {
 	if wr.useAnsiColors {
 		return color.Apply(value)
 	}
@@ -77,7 +94,7 @@ func (wr *LogWriter) Colorize(value string, color AnsiColorCode) string {
 }
 
 // ColorizeByStatusCode colorizes a string by a status code (green, yellow, red).
-func (wr *LogWriter) ColorizeByStatusCode(statusCode int, value string) string {
+func (wr *Writer) ColorizeByStatusCode(statusCode int, value string) string {
 	if wr.useAnsiColors {
 		if statusCode >= http.StatusOK && statusCode < 300 { //the http 2xx range is ok
 			return ColorGreen.Apply(value)
@@ -91,7 +108,7 @@ func (wr *LogWriter) ColorizeByStatusCode(statusCode int, value string) string {
 }
 
 // GetTimestamp returns a new timestamp string.
-func (wr *LogWriter) GetTimestamp(optionalTimeSource ...TimeSource) string {
+func (wr *Writer) GetTimestamp(optionalTimeSource ...TimeSource) string {
 	timeFormat := DefaultTimeFormat
 	if len(wr.timeFormat) > 0 {
 		timeFormat = wr.timeFormat
@@ -103,37 +120,37 @@ func (wr *LogWriter) GetTimestamp(optionalTimeSource ...TimeSource) string {
 }
 
 // formatLabel returns the app name.
-func (wr *LogWriter) formatLabel() string {
+func (wr *Writer) formatLabel() string {
 	return wr.Colorize(wr.label, ColorBlue)
 }
 
 // Printf writes to the output stream.
-func (wr *LogWriter) Printf(format string, args ...interface{}) (int64, error) {
+func (wr *Writer) Printf(format string, args ...interface{}) (int64, error) {
 	return wr.Fprintf(wr.Output, format, args...)
 }
 
 // PrintfWithTimeSource writes to the output stream, with a given timing source.
-func (wr *LogWriter) PrintfWithTimeSource(ts TimeSource, format string, args ...interface{}) (int64, error) {
+func (wr *Writer) PrintfWithTimeSource(ts TimeSource, format string, args ...interface{}) (int64, error) {
 	return wr.FprintfWithTimeSource(ts, wr.Output, format, args...)
 }
 
 // Errorf writes to the error output stream.
-func (wr *LogWriter) Errorf(format string, args ...interface{}) (int64, error) {
+func (wr *Writer) Errorf(format string, args ...interface{}) (int64, error) {
 	return wr.Fprintf(wr.GetErrorOutput(), format, args...)
 }
 
 // ErrorfWithTimeSource writes to the error output stream, with a given timing source.
-func (wr *LogWriter) ErrorfWithTimeSource(ts TimeSource, format string, args ...interface{}) (int64, error) {
+func (wr *Writer) ErrorfWithTimeSource(ts TimeSource, format string, args ...interface{}) (int64, error) {
 	return wr.FprintfWithTimeSource(ts, wr.GetErrorOutput(), format, args...)
 }
 
 // Write writes a binary blob to a given writer, and with a given timing source.
-func (wr *LogWriter) Write(binary []byte) (int64, error) {
+func (wr *Writer) Write(binary []byte) (int64, error) {
 	return wr.WriteWithTimeSource(SystemClock, binary)
 }
 
 // WriteWithTimeSource writes a binary blob to a given writer, and with a given timing source.
-func (wr *LogWriter) WriteWithTimeSource(ts TimeSource, binary []byte) (int64, error) {
+func (wr *Writer) WriteWithTimeSource(ts TimeSource, binary []byte) (int64, error) {
 	buf := wr.bufferPool.Get()
 	defer wr.bufferPool.Put(buf)
 
@@ -153,12 +170,12 @@ func (wr *LogWriter) WriteWithTimeSource(ts TimeSource, binary []byte) (int64, e
 }
 
 // Fprintf writes a given string and args to a writer.
-func (wr *LogWriter) Fprintf(w io.Writer, format string, args ...interface{}) (int64, error) {
+func (wr *Writer) Fprintf(w io.Writer, format string, args ...interface{}) (int64, error) {
 	return wr.FprintfWithTimeSource(SystemClock, w, format, args...)
 }
 
 // FprintfWithTimeSource writes a given string and args to a writer and with a given timing source.
-func (wr *LogWriter) FprintfWithTimeSource(ts TimeSource, w io.Writer, format string, args ...interface{}) (int64, error) {
+func (wr *Writer) FprintfWithTimeSource(ts TimeSource, w io.Writer, format string, args ...interface{}) (int64, error) {
 	if w == nil {
 		return 0, nil
 	}
@@ -189,42 +206,67 @@ func (wr *LogWriter) FprintfWithTimeSource(ts TimeSource, w io.Writer, format st
 }
 
 // UseAnsiColors is a formatting option.
-func (wr *LogWriter) UseAnsiColors() bool { return wr.useAnsiColors }
+func (wr *Writer) UseAnsiColors() bool { return wr.useAnsiColors }
 
 // SetUseAnsiColors sets a formatting option.
-func (wr *LogWriter) SetUseAnsiColors(useAnsiColors bool) { wr.useAnsiColors = useAnsiColors }
+func (wr *Writer) SetUseAnsiColors(useAnsiColors bool) { wr.useAnsiColors = useAnsiColors }
 
 // ShowTimestamp is a formatting option.
-func (wr *LogWriter) ShowTimestamp() bool { return wr.showTimestamp }
+func (wr *Writer) ShowTimestamp() bool { return wr.showTimestamp }
 
 // SetShowTimestamp sets a formatting option.
-func (wr *LogWriter) SetShowTimestamp(showTimestamp bool) { wr.showTimestamp = showTimestamp }
+func (wr *Writer) SetShowTimestamp(showTimestamp bool) { wr.showTimestamp = showTimestamp }
 
 // ShowLabel is a formatting option.
-func (wr *LogWriter) ShowLabel() bool { return wr.showLabel }
+func (wr *Writer) ShowLabel() bool { return wr.showLabel }
 
 // SetShowLabel sets a formatting option.
-func (wr *LogWriter) SetShowLabel(showLabel bool) { wr.showLabel = showLabel }
+func (wr *Writer) SetShowLabel(showLabel bool) { wr.showLabel = showLabel }
 
 // Label is a formatting option.
-func (wr *LogWriter) Label() string { return wr.label }
+func (wr *Writer) Label() string { return wr.label }
 
 // SetLabel sets a formatting option.
-func (wr *LogWriter) SetLabel(label string) { wr.label = label }
+func (wr *Writer) SetLabel(label string) { wr.label = label }
 
 // TimeFormat is a formatting option.
-func (wr *LogWriter) TimeFormat() string { return wr.timeFormat }
+func (wr *Writer) TimeFormat() string { return wr.timeFormat }
 
 // SetTimeFormat sets a formatting option.
-func (wr *LogWriter) SetTimeFormat(timeFormat string) { wr.timeFormat = timeFormat }
+func (wr *Writer) SetTimeFormat(timeFormat string) { wr.timeFormat = timeFormat }
 
 // GetBuffer returns a leased buffer from the buffer pool.
-func (wr *LogWriter) GetBuffer() *bytes.Buffer {
+func (wr *Writer) GetBuffer() *bytes.Buffer {
 	return wr.bufferPool.Get()
 }
 
 // PutBuffer adds the leased buffer back to the pool.
 // It Should be called in conjunction with `GetBuffer`.
-func (wr *LogWriter) PutBuffer(buffer *bytes.Buffer) {
+func (wr *Writer) PutBuffer(buffer *bytes.Buffer) {
 	wr.bufferPool.Put(buffer)
+}
+
+// Close closes the writer, free-ing underlying resources.
+func (wr *Writer) Close() (err error) {
+	if wr.Output != nil {
+		if closer, isCloser := wr.Output.(io.Closer); isCloser {
+			err = closer.Close()
+			if err != nil {
+				return
+			}
+		}
+		wr.Output = nil
+	}
+	if wr.ErrorOutput != nil {
+		if closer, isCloser := wr.ErrorOutput.(io.Closer); isCloser {
+			err = closer.Close()
+			if err != nil {
+				return
+			}
+		}
+		wr.ErrorOutput = nil
+	}
+
+	wr.bufferPool = nil
+	return
 }

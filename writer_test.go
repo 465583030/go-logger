@@ -10,8 +10,8 @@ import (
 func TestLogWriterPrintf(t *testing.T) {
 	assert := assert.New(t)
 
-	buffer := bytes.NewBuffer([]byte{})
-	writer := NewLogWriter(buffer, buffer)
+	buffer := bytes.NewBuffer(nil)
+	writer := NewWriterWithError(buffer, buffer)
 	writer.showTimestamp = false
 	writer.showLabel = false
 	writer.useAnsiColors = false
@@ -22,8 +22,8 @@ func TestLogWriterPrintf(t *testing.T) {
 func TestLogWriterPrintfWithLabel(t *testing.T) {
 	assert := assert.New(t)
 
-	buffer := bytes.NewBuffer([]byte{})
-	writer := NewLogWriter(buffer, buffer)
+	buffer := bytes.NewBuffer(nil)
+	writer := NewWriterWithError(buffer, buffer)
 	writer.label = "unit-test"
 	writer.showTimestamp = false
 	writer.showLabel = true
@@ -36,7 +36,7 @@ func TestLogWriterPrintfWithLabelColorized(t *testing.T) {
 	assert := assert.New(t)
 
 	buffer := bytes.NewBuffer([]byte{})
-	writer := NewLogWriter(buffer, buffer)
+	writer := NewWriterWithError(buffer, buffer)
 	writer.label = "unit-test"
 	writer.showTimestamp = false
 	writer.showLabel = true
@@ -48,8 +48,8 @@ func TestLogWriterPrintfWithLabelColorized(t *testing.T) {
 func TestWriterErrorOutputCoalesced(t *testing.T) {
 	assert := assert.New(t)
 
-	buffer := bytes.NewBuffer([]byte{})
-	writer := NewLogWriter(buffer)
+	buffer := bytes.NewBuffer(nil)
+	writer := NewWriter(buffer)
 	writer.showTimestamp = false
 	writer.useAnsiColors = false
 
@@ -60,9 +60,9 @@ func TestWriterErrorOutputCoalesced(t *testing.T) {
 func TestWriterErrorOutput(t *testing.T) {
 	assert := assert.New(t)
 
-	stdout := bytes.NewBuffer([]byte{})
-	stderr := bytes.NewBuffer([]byte{})
-	writer := NewLogWriter(stdout, stderr)
+	stdout := bytes.NewBuffer(nil)
+	stderr := bytes.NewBuffer(nil)
+	writer := NewWriterWithError(stdout, stderr)
 	writer.showTimestamp = false
 	writer.useAnsiColors = false
 
