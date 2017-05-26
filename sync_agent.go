@@ -16,7 +16,7 @@ func (sa *SyncAgent) Infof(format string, args ...interface{}) {
 	if sa == nil {
 		return
 	}
-	sa.WriteEventf(EventInfo, ColorWhite, format, args...)
+	sa.WriteEventf(EventInfo, ColorLightWhite, format, args...)
 }
 
 // Debugf logs a debug message to the output stream.
@@ -108,7 +108,7 @@ func (sa *SyncAgent) WriteEventf(event EventFlag, color AnsiColorCode, format st
 		return
 	}
 	if sa.a.IsEnabled(event) {
-		sa.a.write(append([]interface{}{TimeNow(), event, ColorLightYellow, format}, args...)...)
+		sa.a.write(append([]interface{}{TimeNow(), event, color, format}, args...)...)
 
 		if sa.a.HasListener(event) {
 			sa.a.triggerListeners(append([]interface{}{TimeNow(), event, format}, args...)...)
@@ -125,7 +125,7 @@ func (sa *SyncAgent) WriteErrorEventf(event EventFlag, color AnsiColorCode, form
 		return
 	}
 	if sa.a.IsEnabled(event) {
-		sa.a.writeError(append([]interface{}{TimeNow(), event, ColorLightYellow, format}, args...)...)
+		sa.a.writeError(append([]interface{}{TimeNow(), event, color, format}, args...)...)
 
 		if sa.a.HasListener(event) {
 			sa.a.triggerListeners(append([]interface{}{TimeNow(), event, format}, args...)...)
