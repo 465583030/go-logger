@@ -143,7 +143,7 @@ func (sa *SyncAgent) ErrorEventWithState(event EventFlag, color AnsiColorCode, e
 	}
 	if err != nil {
 		if sa.a.IsEnabled(event) {
-			sa.a.writeError(TimeNow(), event, ColorLightYellow, "%+v", err)
+			sa.a.writeError(TimeNow(), event, color, "%+v", err)
 			if sa.a.HasListener(event) {
 				sa.a.triggerListeners(append([]interface{}{TimeNow(), event, err}, state...)...)
 			}
