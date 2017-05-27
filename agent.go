@@ -353,6 +353,9 @@ func (da *Agent) Close() (err error) {
 
 // Drain waits for the agent to finish it's queue of events before closing.
 func (da *Agent) Drain() error {
+	if da == nil {
+		return nil
+	}
 	da.SetVerbosity(NewEventFlagSetNone())
 
 	for da.eventQueue.Len() > 0 {
