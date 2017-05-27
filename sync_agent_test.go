@@ -24,7 +24,7 @@ func TestSyncAgentInfof(t *testing.T) {
 	})
 	a.Sync().Infof("this is a %s", "test")
 	assert.Equal("this is a %s", format)
-	assert.Equal("info this is a test\n", buffer.String())
+	assert.Equal("[info] this is a test\n", buffer.String())
 }
 
 func TestSyncAgentDebugf(t *testing.T) {
@@ -38,7 +38,7 @@ func TestSyncAgentDebugf(t *testing.T) {
 	a.Writer().SetUseAnsiColors(false)
 	a.Sync().Infof("this is a %s", "test")
 	a.Sync().Debugf("this is a %s", "test")
-	assert.Equal("debug this is a test\n", buffer.String())
+	assert.Equal("[debug] this is a test\n", buffer.String())
 }
 
 func TestSyncAgentWarningf(t *testing.T) {
@@ -52,7 +52,7 @@ func TestSyncAgentWarningf(t *testing.T) {
 	a.Writer().SetUseAnsiColors(false)
 	a.Sync().Infof("this is a %s", "test")
 	a.Sync().Warningf("this is a %s", "test")
-	assert.Equal("warning this is a test\n", buffer.String())
+	assert.Equal("[warning] this is a test\n", buffer.String())
 }
 
 func TestSyncAgentErrorf(t *testing.T) {
@@ -66,7 +66,7 @@ func TestSyncAgentErrorf(t *testing.T) {
 	a.Writer().SetUseAnsiColors(false)
 	a.Sync().Infof("this is a %s", "test")
 	a.Sync().Errorf("this is a %s", "test")
-	assert.Equal("error this is a test\n", buffer.String())
+	assert.Equal("[error] this is a test\n", buffer.String())
 }
 
 func TestSyncAgentOnEvent(t *testing.T) {
