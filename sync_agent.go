@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 	"net/http"
 )
 
@@ -97,6 +98,17 @@ func (sa *SyncAgent) FatalWithReq(err error, req *http.Request) error {
 		return err
 	}
 	return sa.ErrorEventWithState(EventFatalError, ColorRed, err, req)
+}
+
+// FatalExit logs the result of a fatal error to std err and calls `exit(1)`.
+// NOTE: this terminates the program.
+func (sa *SyncAgent) FatalExit(err error) {
+	if sa == nil {
+		os.Exit(1)
+	}
+
+	sa.ErrorEventWithState(EventFatalError, ColorRed, err)
+	os.Exit(1)
 }
 
 // WriteEventf writes to the standard output and triggers events.
