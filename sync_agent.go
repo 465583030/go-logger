@@ -2,14 +2,19 @@ package logger
 
 import (
 	"fmt"
-	"os"
 	"net/http"
+	"os"
 )
 
 // SyncAgent is an agent that fires events synchronously.
 // It wraps a regular agent.
 type SyncAgent struct {
 	a *Agent
+}
+
+// Writer returns the underlying writer.
+func (sa *SyncAgent) Writer() *Writer {
+	return sa.a.Writer()
 }
 
 // Infof logs an informational message to the output stream.
