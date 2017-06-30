@@ -12,6 +12,11 @@ type SyncAgent struct {
 	a *Agent
 }
 
+// Agent returns the underlying agent.
+func (sa *SyncAgent) Agent() *Agent {
+	return sa.a
+}
+
 // Writer returns the underlying writer.
 func (sa *SyncAgent) Writer() *Writer {
 	return sa.a.Writer()
